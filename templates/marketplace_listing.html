@@ -4,142 +4,190 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{{ listing.title }} | Alpha Marketplace</title>
-    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    
+    <!-- Favicon -->
+    <link rel="icon" type="image/x-icon" href="{{ url_for('static', filename='favicon.ico') }}">
+    <link rel="icon" type="image/svg+xml" href="{{ url_for('static', filename='favicon.svg') }}">
+    <link rel="icon" type="image/png" sizes="16x16" href="{{ url_for('static', filename='favicon-16x16.png') }}">
+    <link rel="icon" type="image/png" sizes="32x32" href="{{ url_for('static', filename='favicon-32x32.png') }}">
+    <link rel="apple-touch-icon" sizes="180x180" href="{{ url_for('static', filename='apple-touch-icon.png') }}">
+    <link rel="manifest" href="{{ url_for('static', filename='site.webmanifest') }}">
+    <meta name="theme-color" content="#09090b">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        background: '#09090b',
+                        foreground: '#fafafa',
+                        card: '#09090b',
+                        'card-foreground': '#fafafa',
+                        popover: '#09090b',
+                        'popover-foreground': '#fafafa',
+                        primary: '#3b82f6',
+                        'primary-foreground': '#f8fafc',
+                        secondary: '#1e293b',
+                        'secondary-foreground': '#f1f5f9',
+                        muted: '#1e293b',
+                        'muted-foreground': '#94a3b8',
+                        accent: '#1e293b',
+                        'accent-foreground': '#f1f5f9',
+                        destructive: '#dc2626',
+                        'destructive-foreground': '#fef2f2',
+                        border: '#27272a',
+                        input: '#27272a',
+                        ring: '#3b82f6',
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'system-ui', 'sans-serif'],
+                    },
+                }
+            }
+        }
+    </script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
-    <link rel="icon" type="image/x-icon" href="/static/favicon.ico">
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     
     <!-- Meta tags for sharing -->
     <meta property="og:title" content="{{ listing.title }}">
-    <meta property="og:description" content="AI-generated crypto alpha analysis from Sovereign Agent #001">
+    <meta property="og:description" content="AI-generated crypto alpha analysis from Alpha Co-Pilot">
     <meta property="og:type" content="article">
     <meta name="twitter:card" content="summary">
     <meta name="twitter:title" content="{{ listing.title }}">
     <meta name="twitter:description" content="AI-generated crypto alpha analysis">
 </head>
-<body class="bg-gray-900 text-white min-h-screen">
-    <!-- Header -->
-    <header class="bg-gray-800 border-b border-gray-700">
-        <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div class="flex justify-between items-center h-16">
-                <div class="flex items-center space-x-4">
-                    <a href="/marketplace" class="text-gray-400 hover:text-white transition-colors">
-                        <i class="fas fa-arrow-left mr-2"></i>Back to Marketplace
-                    </a>
-                </div>
-                <div class="flex items-center space-x-4">
-                    <button id="shareBtn" class="bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded-lg text-sm font-medium transition-colors">
-                        <i class="fas fa-share mr-2"></i>Share
-                    </button>
-                    <button id="copyBtn" class="bg-gray-700 hover:bg-gray-600 px-4 py-2 rounded-lg text-sm font-medium transition-colors">
-                        <i class="fas fa-copy mr-2"></i>Copy
-                    </button>
-                </div>
-            </div>
-        </div>
-    </header>
-
-    <!-- Main Content -->
-    <main class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <!-- Listing Header -->
-        <div class="mb-8">
-            <div class="flex items-center justify-between mb-6">
-                <div class="flex-1">
-                    <h1 class="text-3xl font-bold text-white mb-4">{{ listing.title }}</h1>
-                    
-                    <!-- Meta Information -->
-                    <div class="flex flex-wrap items-center gap-6 text-sm text-gray-400">
-                        <div class="flex items-center">
-                            <i class="fas fa-robot mr-2 text-blue-400"></i>
-                            <span>{{ listing.creator }}</span>
-                        </div>
-                        <div class="flex items-center">
-                            <i class="fas fa-calendar mr-2"></i>
-                            <span>{{ listing.created_at[:19].replace('T', ' ') }} UTC</span>
-                        </div>
-                        <div class="flex items-center">
-                            <i class="fas fa-eye mr-2"></i>
-                            <span>{{ listing.views }} views</span>
-                        </div>
-                        <div class="flex items-center">
-                            <i class="fas fa-link mr-2 text-green-400"></i>
-                            <span>On-Chain Verified</span>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Tags -->
-            <div class="flex flex-wrap gap-2 mb-6">
-                {% for tag in listing.tags %}
-                <span class="bg-gray-700 text-gray-300 px-3 py-1 rounded-full text-sm">
-                    {{ tag }}
-                </span>
-                {% endfor %}
-            </div>
-
-            <!-- Action Banner -->
-            <div class="bg-gradient-to-r from-blue-900/30 to-purple-900/30 border border-blue-500/30 rounded-lg p-4 mb-8">
+<body class="bg-background text-foreground font-sans antialiased">
+    <div class="flex flex-col min-h-screen">
+        <!-- Header - Matching Dashboard Style -->
+        <header class="border-b border-border bg-background/95 backdrop-blur-md sticky top-0 z-50 shadow-sm">
+            <div class="max-w-5xl mx-auto px-6 py-4">
                 <div class="flex items-center justify-between">
-                    <div>
-                        <h3 class="text-lg font-bold text-blue-400">🚀 Premium Alpha Intelligence</h3>
-                        <p class="text-gray-300">Generated by multi-agent AI system • Verified on Polygon</p>
+                    <!-- Navigation -->
+                    <div class="flex items-center space-x-4">
+                        <a href="/marketplace" class="text-muted-foreground hover:text-foreground transition-colors">
+                            <i class="fas fa-arrow-left mr-2"></i>Back to Marketplace
+                        </a>
                     </div>
-                    <a href="/" class="bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded-lg text-sm font-medium transition-colors whitespace-nowrap">
-                        Generate Your Own
-                    </a>
+                    
+                    <!-- Actions -->
+                    <div class="flex items-center space-x-4">
+                        <button id="shareBtn" class="bg-primary hover:bg-primary/90 text-primary-foreground px-4 py-2 rounded-lg text-sm font-medium transition-colors">
+                            <i class="fas fa-share mr-2"></i>Share
+                        </button>
+                        <button id="copyBtn" class="bg-muted hover:bg-muted/80 text-muted-foreground px-4 py-2 rounded-lg text-sm font-medium transition-colors">
+                            <i class="fas fa-copy mr-2"></i>Copy
+                        </button>
+                    </div>
                 </div>
             </div>
-        </div>
+        </header>
 
-        <!-- Analysis Content -->
-        <div class="bg-gray-800 rounded-lg border border-gray-700 overflow-hidden">
-            <div class="bg-gray-750 px-6 py-4 border-b border-gray-700">
-                <h2 class="text-xl font-bold text-white flex items-center">
-                    <i class="fas fa-chart-line mr-3 text-green-400"></i>
-                    Alpha Analysis
-                </h2>
-            </div>
-            
-            <div class="p-6">
-                <div id="analysisContent" class="prose prose-invert max-w-none">
-                    {{ listing.content|safe }}
+        <!-- Main Content -->
+        <main class="flex-1 max-w-5xl mx-auto px-6 py-8">
+            <!-- Listing Header -->
+            <div class="mb-8">
+                <div class="flex items-center justify-between mb-6">
+                    <div class="flex-1">
+                        <h1 class="text-3xl font-bold text-foreground mb-4">{{ listing.title }}</h1>
+                        
+                        <!-- Meta Information -->
+                        <div class="flex flex-wrap items-center gap-6 text-sm text-muted-foreground">
+                            <div class="flex items-center">
+                                <i class="fas fa-robot mr-2 text-primary"></i>
+                                <span>{{ listing.creator }}</span>
+                            </div>
+                            <div class="flex items-center">
+                                <i class="fas fa-calendar mr-2"></i>
+                                <span>{{ listing.created_at[:19].replace('T', ' ') }} UTC</span>
+                            </div>
+                            <div class="flex items-center">
+                                <i class="fas fa-eye mr-2"></i>
+                                <span>{{ listing.views }} views</span>
+                            </div>
+                            <div class="flex items-center">
+                                <i class="fas fa-link mr-2 text-green-500"></i>
+                                <span>On-Chain Verified</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Tags -->
+                <div class="flex flex-wrap gap-2 mb-6">
+                    {% for tag in listing.tags %}
+                    <span class="bg-muted text-muted-foreground px-3 py-1 rounded-full text-sm">
+                        {{ tag }}
+                    </span>
+                    {% endfor %}
+                </div>
+
+                <!-- Action Banner -->
+                <div class="bg-gradient-to-r from-primary/10 to-purple-500/10 border border-primary/20 rounded-xl p-6 mb-8">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <h3 class="text-lg font-bold text-primary">🚀 Premium Alpha Intelligence</h3>
+                            <p class="text-muted-foreground">Generated by multi-agent AI system • Verified on Polygon</p>
+                        </div>
+                        <a href="/" class="bg-primary hover:bg-primary/90 text-primary-foreground px-4 py-2 rounded-lg text-sm font-medium transition-colors whitespace-nowrap">
+                            Generate Your Own
+                        </a>
+                    </div>
                 </div>
             </div>
-        </div>
 
-        <!-- CTA Section -->
-        <div class="mt-12 text-center">
-            <div class="bg-gray-800 rounded-lg border border-gray-700 p-8">
-                <h3 class="text-2xl font-bold text-white mb-4">Want More Alpha?</h3>
-                <p class="text-gray-300 mb-6">
-                    Get real-time crypto analysis generated by our autonomous agent system.
-                    Connect your wallet and start generating alpha immediately.
-                </p>
-                <div class="flex flex-col sm:flex-row gap-4 justify-center">
-                    <a href="/" class="bg-blue-600 hover:bg-blue-700 px-8 py-3 rounded-lg font-medium transition-colors">
-                        <i class="fas fa-robot mr-2"></i>Generate Alpha
-                    </a>
-                    <a href="/marketplace" class="bg-gray-700 hover:bg-gray-600 px-8 py-3 rounded-lg font-medium transition-colors">
-                        <i class="fas fa-list mr-2"></i>Browse Marketplace
-                    </a>
+            <!-- Analysis Content -->
+            <div class="bg-card border border-border rounded-xl overflow-hidden shadow-sm">
+                <div class="bg-muted/30 px-6 py-4 border-b border-border">
+                    <h2 class="text-xl font-bold text-foreground flex items-center">
+                        <i class="fas fa-chart-line mr-3 text-green-500"></i>
+                        Alpha Analysis
+                    </h2>
+                </div>
+                
+                <div class="p-6">
+                    <div id="analysisContent" class="prose prose-invert max-w-none">
+                        {{ listing.content|safe }}
+                    </div>
                 </div>
             </div>
-        </div>
-    </main>
 
-    <!-- Footer -->
-    <footer class="bg-gray-800 border-t border-gray-700 mt-16">
-        <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-            <div class="text-center">
-                <p class="text-gray-400">
-                    🤖 Analysis ID: <code class="bg-gray-700 px-2 py-1 rounded text-blue-400">{{ listing.id }}</code> • 
-                    Generated by <strong>Sovereign Agent #001</strong> • 
-                    <span class="text-green-400">Autonomous Creator Protocol</span>
-                </p>
+            <!-- CTA Section -->
+            <div class="mt-12 text-center">
+                <div class="bg-card border border-border rounded-xl p-8">
+                    <h3 class="text-2xl font-bold text-foreground mb-4">Want More Alpha?</h3>
+                    <p class="text-muted-foreground mb-6">
+                        Get real-time crypto analysis generated by our autonomous agent system.
+                        Connect your wallet and start generating alpha immediately.
+                    </p>
+                    <div class="flex flex-col sm:flex-row gap-4 justify-center">
+                        <a href="/" class="bg-primary hover:bg-primary/90 text-primary-foreground px-8 py-3 rounded-lg font-medium transition-colors">
+                            <i class="fas fa-robot mr-2"></i>Generate Alpha
+                        </a>
+                        <a href="/marketplace" class="bg-muted hover:bg-muted/80 text-muted-foreground px-8 py-3 rounded-lg font-medium transition-colors">
+                            <i class="fas fa-list mr-2"></i>Browse Marketplace
+                        </a>
+                    </div>
+                </div>
             </div>
-        </div>
-    </footer>
+        </main>
+
+        <!-- Footer - Matching Dashboard Style -->
+        <footer class="border-t border-border bg-background/50 backdrop-blur-sm mt-16">
+            <div class="max-w-5xl mx-auto px-6 py-8">
+                <div class="text-center">
+                    <p class="text-muted-foreground">
+                        🤖 Analysis ID: <code class="bg-muted px-2 py-1 rounded text-primary">{{ listing.id }}</code> • 
+                        Generated by <strong>{{ listing.creator }}</strong> • 
+                        <span class="text-green-500">Autonomous Creator Protocol</span>
+                    </p>
+                </div>
+            </div>
+        </footer>
+    </div>
 
     <script>
         // Render markdown content
@@ -156,13 +204,13 @@
             try {
                 await navigator.clipboard.writeText(content);
                 this.innerHTML = '<i class="fas fa-check mr-2"></i>Copied!';
-                this.classList.add('bg-green-600');
-                this.classList.remove('bg-gray-700');
+                this.classList.add('bg-green-600', 'text-white');
+                this.classList.remove('bg-muted', 'text-muted-foreground');
                 
                 setTimeout(() => {
                     this.innerHTML = '<i class="fas fa-copy mr-2"></i>Copy';
-                    this.classList.remove('bg-green-600');
-                    this.classList.add('bg-gray-700');
+                    this.classList.remove('bg-green-600', 'text-white');
+                    this.classList.add('bg-muted', 'text-muted-foreground');
                 }, 2000);
             } catch (error) {
                 console.error('Copy failed:', error);
@@ -190,30 +238,30 @@
 
     <style>
         .prose {
-            color: #e5e7eb;
+            color: #fafafa;
         }
         .prose h1, .prose h2, .prose h3, .prose h4 {
-            color: #ffffff;
+            color: #fafafa;
             font-weight: bold;
         }
         .prose strong {
-            color: #ffffff;
+            color: #fafafa;
         }
         .prose code {
-            background-color: #374151;
-            color: #60a5fa;
+            background-color: #1e293b;
+            color: #3b82f6;
             padding: 0.25rem 0.5rem;
             border-radius: 0.375rem;
         }
         .prose pre {
-            background-color: #1f2937;
+            background-color: #0f172a;
             border-radius: 0.5rem;
         }
         .prose a {
-            color: #60a5fa;
+            color: #3b82f6;
         }
         .prose ul, .prose ol {
-            color: #d1d5db;
+            color: #94a3b8;
         }
     </style>
 </body>

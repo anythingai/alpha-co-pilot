@@ -3,36 +3,83 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Not Found | Sovereign Agent #001</title>
-    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <title>Not Found | Alpha Co-Pilot</title>
+    
+    <!-- Favicon -->
+    <link rel="icon" type="image/x-icon" href="{{ url_for('static', filename='favicon.ico') }}">
+    <link rel="icon" type="image/svg+xml" href="{{ url_for('static', filename='favicon.svg') }}">
+    <link rel="icon" type="image/png" sizes="16x16" href="{{ url_for('static', filename='favicon-16x16.png') }}">
+    <link rel="icon" type="image/png" sizes="32x32" href="{{ url_for('static', filename='favicon-32x32.png') }}">
+    <link rel="apple-touch-icon" sizes="180x180" href="{{ url_for('static', filename='apple-touch-icon.png') }}">
+    <link rel="manifest" href="{{ url_for('static', filename='site.webmanifest') }}">
+    <meta name="theme-color" content="#09090b">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        background: '#09090b',
+                        foreground: '#fafafa',
+                        card: '#09090b',
+                        'card-foreground': '#fafafa',
+                        popover: '#09090b',
+                        'popover-foreground': '#fafafa',
+                        primary: '#3b82f6',
+                        'primary-foreground': '#f8fafc',
+                        secondary: '#1e293b',
+                        'secondary-foreground': '#f1f5f9',
+                        muted: '#1e293b',
+                        'muted-foreground': '#94a3b8',
+                        accent: '#1e293b',
+                        'accent-foreground': '#f1f5f9',
+                        destructive: '#dc2626',
+                        'destructive-foreground': '#fef2f2',
+                        border: '#27272a',
+                        input: '#27272a',
+                        ring: '#3b82f6',
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'system-ui', 'sans-serif'],
+                    },
+                }
+            }
+        }
+    </script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
-    <link rel="icon" type="image/x-icon" href="/static/favicon.ico">
 </head>
-<body class="bg-gray-900 text-white min-h-screen flex items-center justify-center">
-    <div class="text-center px-4">
+<body class="bg-background text-foreground font-sans antialiased min-h-screen flex items-center justify-center">
+    <div class="text-center px-4 max-w-md mx-auto">
+        <!-- Error Icon -->
         <div class="mb-8">
-            <i class="fas fa-robot text-8xl text-gray-600 mb-6 block"></i>
-            <h1 class="text-6xl font-bold text-white mb-4">404</h1>
-            <h2 class="text-2xl font-bold text-gray-300 mb-4">Alpha Not Found</h2>
-            <p class="text-gray-400 max-w-md mx-auto mb-8">
+            <div class="w-24 h-24 bg-muted/50 rounded-full flex items-center justify-center mx-auto mb-6">
+                <i class="fas fa-robot text-4xl text-muted-foreground"></i>
+            </div>
+            <h1 class="text-6xl font-bold text-foreground mb-4">404</h1>
+            <h2 class="text-2xl font-bold text-muted-foreground mb-4">Alpha Not Found</h2>
+            <p class="text-muted-foreground mb-8">
                 The analysis you're looking for doesn't exist or has been removed from the marketplace.
             </p>
         </div>
 
+        <!-- Navigation Options -->
         <div class="space-y-4">
             <a href="/marketplace" 
-               class="inline-block bg-blue-600 hover:bg-blue-700 px-6 py-3 rounded-lg font-medium transition-colors">
+               class="block w-full bg-primary hover:bg-primary/90 text-primary-foreground px-6 py-3 rounded-lg font-medium transition-colors">
                 <i class="fas fa-list mr-2"></i>Browse Marketplace
             </a>
-            <br>
             <a href="/" 
-               class="inline-block bg-gray-700 hover:bg-gray-600 px-6 py-3 rounded-lg font-medium transition-colors">
+               class="block w-full bg-muted hover:bg-muted/80 text-muted-foreground px-6 py-3 rounded-lg font-medium transition-colors">
                 <i class="fas fa-home mr-2"></i>Back to Command Hub
             </a>
         </div>
 
-        <div class="mt-12 text-sm text-gray-500">
-            🤖 Sovereign Agent #001 • Autonomous Creator Protocol
+        <!-- Footer Info -->
+        <div class="mt-12 text-sm text-muted-foreground">
+            🤖 Alpha Co-Pilot • Autonomous Creator Protocol
         </div>
     </div>
 </body>
