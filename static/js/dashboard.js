@@ -1004,31 +1004,47 @@ async function showAgenticWorkflow() {
         {
             icon: 'fas fa-brain',
             text: 'Planning...',
-            description: 'AI Planner analyzing your request',
+            description: 'Planning Agent creating research strategy',
             color: 'text-blue-400',
             bgColor: 'border-blue-400',
             duration: 2000
         },
         {
             icon: 'fas fa-search',
-            text: 'Researching...',
-            description: 'AI Generator gathering market data',
+            text: 'Scouting...',
+            description: 'Scout Agent gathering real-time data',
             color: 'text-yellow-400',
             bgColor: 'border-yellow-400',
+            duration: 2500
+        },
+        {
+            icon: 'fas fa-chart-line',
+            text: 'Analyzing...',
+            description: 'Analyst Agent synthesizing investment thesis',
+            color: 'text-green-400',
+            bgColor: 'border-green-400',
             duration: 3000
         },
         {
-            icon: 'fas fa-star',
-            text: 'Critiquing...',
-            description: 'AI Critic refining the analysis',
+            icon: 'fas fa-shield-alt',
+            text: 'Risk Checking...',
+            description: 'Risk Analyst Agent quality control & validation',
+            color: 'text-red-400',
+            bgColor: 'border-red-400',
+            duration: 2500
+        },
+        {
+            icon: 'fas fa-broadcast-tower',
+            text: 'Finalizing...',
+            description: 'Comms Agent formatting for publication',
             color: 'text-purple-400',
             bgColor: 'border-purple-400',
-            duration: 2500
+            duration: 2000
         },
         {
             icon: 'fas fa-check-circle',
             text: 'Complete!',
-            description: 'Alpha insights ready',
+            description: 'Alpha Squad analysis ready',
             color: 'text-green-400',
             bgColor: 'border-green-400',
             duration: 1000
@@ -1070,7 +1086,7 @@ async function showAgenticWorkflow() {
                              style="width: ${progressPercent}%; animation: shimmer 2s infinite;"></div>
                     </div>
                     <div class="text-sm text-gray-400">
-                        Agent ${i + 1} of ${stages.length} • Multi-Agent Analysis System
+                        Alpha Squad Agent ${i + 1} of ${stages.length - 1} • Autonomous Analysis System
                     </div>
                 </div>
                 
@@ -1128,3 +1144,97 @@ agenticStyles.textContent = `
     }
 `;
 document.head.appendChild(agenticStyles);
+
+// ============================================================================
+// SOCIAL MEDIA SHARING FUNCTIONALITY
+// ============================================================================
+
+// Add event listeners for social sharing
+document.addEventListener('DOMContentLoaded', function() {
+    const shareBtn = document.getElementById('shareBtn');
+    const shareDropdown = document.getElementById('shareDropdown');
+    const shareTwitter = document.getElementById('shareTwitter');
+    const shareLinkedIn = document.getElementById('shareLinkedIn');
+    const shareReddit = document.getElementById('shareReddit');
+    const shareTelegram = document.getElementById('shareTelegram');
+    const copyLink = document.getElementById('copyLink');
+
+    // Toggle share dropdown
+    if (shareBtn && shareDropdown) {
+        shareBtn.addEventListener('click', function(e) {
+            e.stopPropagation();
+            shareDropdown.classList.toggle('hidden');
+        });
+
+        // Close dropdown when clicking outside
+        document.addEventListener('click', function() {
+            shareDropdown.classList.add('hidden');
+        });
+
+        // Prevent dropdown from closing when clicking inside
+        shareDropdown.addEventListener('click', function(e) {
+            e.stopPropagation();
+        });
+    }
+
+    // Social media sharing functions
+    function shareToSocial(platform) {
+        if (!currentAnalysis) {
+            showNotification('Generate analysis first!', 'error');
+            return;
+        }
+
+        const title = 'Fresh Alpha Insights from Sovereign Agent #001';
+        const description = 'AI-generated crypto analysis from the Alpha Squad';
+        const url = window.location.href;
+        const hashtags = 'crypto,alpha,AI,DeFi,blockchain';
+
+        let shareUrl = '';
+        const analysisPreview = currentAnalysis.substring(0, 200) + '...';
+
+        switch (platform) {
+            case 'twitter':
+                shareUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(`${title}\n\n${analysisPreview}\n\n#${hashtags.replace(/,/g, ' #')}`)}`;
+                break;
+            case 'linkedin':
+                shareUrl = `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(url)}&title=${encodeURIComponent(title)}&summary=${encodeURIComponent(description)}`;
+                break;
+            case 'reddit':
+                shareUrl = `https://reddit.com/submit?url=${encodeURIComponent(url)}&title=${encodeURIComponent(title)}`;
+                break;
+            case 'telegram':
+                shareUrl = `https://t.me/share/url?url=${encodeURIComponent(url)}&text=${encodeURIComponent(title + '\n\n' + description)}`;
+                break;
+        }
+
+        if (shareUrl) {
+            window.open(shareUrl, '_blank', 'width=600,height=400');
+            shareDropdown.classList.add('hidden');
+            showNotification(`Shared to ${platform.charAt(0).toUpperCase() + platform.slice(1)}!`, 'success');
+        }
+    }
+
+    // Copy link functionality
+    function copyShareLink() {
+        if (!currentAnalysis) {
+            showNotification('Generate analysis first!', 'error');
+            return;
+        }
+
+        const shareText = `🎯 Fresh Alpha Insights from Sovereign Agent #001\n\n${currentAnalysis.substring(0, 200)}...\n\nGenerated by AI Alpha Squad • ${window.location.href}`;
+        
+        navigator.clipboard.writeText(shareText).then(() => {
+            showNotification('Analysis link copied to clipboard!', 'success');
+            shareDropdown.classList.add('hidden');
+        }).catch(() => {
+            showNotification('Failed to copy link', 'error');
+        });
+    }
+
+    // Attach event listeners
+    if (shareTwitter) shareTwitter.addEventListener('click', () => shareToSocial('twitter'));
+    if (shareLinkedIn) shareLinkedIn.addEventListener('click', () => shareToSocial('linkedin'));
+    if (shareReddit) shareReddit.addEventListener('click', () => shareToSocial('reddit'));
+    if (shareTelegram) shareTelegram.addEventListener('click', () => shareToSocial('telegram'));
+    if (copyLink) copyLink.addEventListener('click', copyShareLink);
+});

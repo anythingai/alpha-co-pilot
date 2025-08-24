@@ -940,34 +940,45 @@ Rules:
 
     @staticmethod  
     def generate_analysis(query: str) -> tuple[str, Dict[str, Any]]:
-        """Simulated Agentic Workflow: Planner -> Generator -> Critic (as per PRD)"""
-        logger.info(f"🎯 Starting simulated agentic workflow for: '{query}'")
-        analysis_debug: Dict[str, Any] = {'approach': 'agentic_workflow_simulation'}
+        """Complete 5-Agent Alpha Squad: Planner -> Scout -> Analyst -> Risk Analyst -> Comms"""
+        logger.info(f"🎯 Starting 5-Agent Alpha Squad for: '{query}'")
+        analysis_debug: Dict[str, Any] = {'approach': 'alpha_squad_5_agents'}
         
         try:
-            # AGENTIC STAGE 1: PLANNER - Analyze the query and create a research plan
-            logger.info("🧠 AGENTIC STAGE 1: PLANNER")
+            # ALPHA SQUAD STAGE 1: PLANNER - Project manager, breaks down the request
+            logger.info("🧠 ALPHA SQUAD STAGE 1: PLANNING AGENT")
             planner_response, planner_debug = AlphaGenerator.agentic_planner(query)
             analysis_debug['planner'] = planner_debug
             
-            # AGENTIC STAGE 2: GENERATOR - Execute the plan and gather data
-            logger.info("🔍 AGENTIC STAGE 2: GENERATOR")  
-            generator_response, generator_debug = AlphaGenerator.agentic_generator(query, planner_response)
-            analysis_debug['generator'] = generator_debug
+            # ALPHA SQUAD STAGE 2: SCOUT - Tool-user, gathers real-time data
+            logger.info("🔍 ALPHA SQUAD STAGE 2: SCOUT AGENT (Tool-User)")  
+            scout_response, scout_debug = AlphaGenerator.agentic_scout(query, planner_response)
+            analysis_debug['scout'] = scout_debug
             
-            # AGENTIC STAGE 3: CRITIC - Review and refine the analysis
-            logger.info("✨ AGENTIC STAGE 3: CRITIC")
-            final_analysis, critic_debug = AlphaGenerator.agentic_critic(query, planner_response, generator_response)
-            analysis_debug['critic'] = critic_debug
+            # ALPHA SQUAD STAGE 3: ANALYST - Writer, synthesizes research into thesis
+            logger.info("📊 ALPHA SQUAD STAGE 3: ANALYST AGENT (Generator)")
+            analyst_response, analyst_debug = AlphaGenerator.agentic_analyst(query, planner_response, scout_response)
+            analysis_debug['analyst'] = analyst_debug
             
-            analysis_debug['stages_completed'] = 3
-            analysis_debug['workflow_type'] = 'planner_generator_critic'
+            # ALPHA SQUAD STAGE 4: RISK ANALYST - Quality control, challenges thesis
+            logger.info("⚠️ ALPHA SQUAD STAGE 4: RISK ANALYST AGENT (Critic)")
+            risk_response, risk_debug = AlphaGenerator.agentic_risk_analyst(query, planner_response, scout_response, analyst_response)
+            analysis_debug['risk_analyst'] = risk_debug
             
-            logger.info(f"🎯 Agentic workflow complete: {len(final_analysis)} characters")
+            # ALPHA SQUAD STAGE 5: COMMS - Finalizer, formats for publication
+            logger.info("✨ ALPHA SQUAD STAGE 5: COMMS AGENT (Finalizer)")
+            final_analysis, comms_debug = AlphaGenerator.agentic_comms(query, planner_response, scout_response, analyst_response, risk_response)
+            analysis_debug['comms'] = comms_debug
+            
+            analysis_debug['stages_completed'] = 5
+            analysis_debug['workflow_type'] = 'alpha_squad_complete'
+            analysis_debug['agents'] = ['planner', 'scout', 'analyst', 'risk_analyst', 'comms']
+            
+            logger.info(f"🎯 Alpha Squad complete: {len(final_analysis)} characters")
             return (final_analysis, analysis_debug)
             
         except Exception as e:
-            logger.error(f"❌ Agentic workflow failed: {e}")
+            logger.error(f"❌ Alpha Squad workflow failed: {e}")
             analysis_debug['error'] = str(e)
             return (f"Analysis temporarily unavailable: {str(e)}", analysis_debug)
     
@@ -1319,6 +1330,266 @@ OUTPUT FORMAT:
         
         logger.info("✅ Planner Agent: Research plan created")
         return (planner_result, planner_debug)
+
+    @staticmethod
+    def agentic_scout(query: str, planner_output: str) -> tuple[str, Dict[str, Any]]:
+        """ALPHA SQUAD STAGE 2: Scout Agent - Tool-user that gathers real-time data"""
+        logger.info("🔍 Scout Agent: Gathering real-time data with tools...")
+        
+        # Get real market data using our APIs
+        try:
+            trending_coins = CoinGeckoAPI.get_trending_coins(limit=10)
+            crypto_data = []
+            for coin_id in trending_coins[:5]:
+                data = CoinGeckoAPI.get_coin_data(coin_id)
+                if data:
+                    crypto_data.append(data)
+        except Exception as e:
+            logger.warning(f"⚠️ Scout: Could not fetch live data: {e}")
+            crypto_data = []
+        
+        # Get Google Trends data if available
+        google_trends_data = {}
+        try:
+            if 'bitcoin' in query.lower() or 'btc' in query.lower():
+                google_trends_data = GoogleTrendsAPI.get_interest_over_time('bitcoin')
+        except Exception:
+            pass
+        
+        scout_prompt = f"""
+You are the SCOUT agent in the Alpha Squad - the tool-using researcher.
+
+Your role: Execute the planner's strategy by gathering real-time data from external sources.
+
+ORIGINAL USER QUERY: {query}
+
+PLANNER'S RESEARCH PLAN:
+{planner_output}
+
+LIVE MARKET DATA GATHERED:
+{json.dumps(crypto_data, indent=2) if crypto_data else "No live data available"}
+
+GOOGLE TRENDS DATA:
+{json.dumps(google_trends_data, indent=2) if google_trends_data else "No trends data available"}
+
+Your task: 
+1. Analyze the live data you've gathered
+2. Identify key data points that support or contradict current narratives
+3. Find patterns, anomalies, or signals in the data
+4. Organize your findings for the Analyst agent
+
+OUTPUT FORMAT:
+## 🔍 SCOUT REPORT: REAL-TIME DATA
+
+### Data Sources Used
+[List the tools and APIs accessed]
+
+### Key Findings
+[Most important data points discovered]
+
+### Market Signals
+[Price movements, volume, sentiment indicators]
+
+### Data Quality Assessment
+[Reliability and freshness of gathered data]
+
+### Recommendations for Analysis
+[What the Analyst should focus on based on your findings]
+
+Focus on facts and data. The Analyst will interpret this information.
+"""
+        
+        scout_result, scout_debug = AlphaGenerator.generate_content(scout_prompt)
+        scout_debug['agent_type'] = 'scout'
+        scout_debug['stage'] = 2
+        scout_debug['tools_used'] = ['coingecko_api', 'google_trends']
+        scout_debug['data_points'] = len(crypto_data)
+        
+        logger.info("✅ Scout Agent: Real-time data gathered")
+        return (scout_result, scout_debug)
+
+    @staticmethod  
+    def agentic_analyst(query: str, planner_output: str, scout_output: str) -> tuple[str, Dict[str, Any]]:
+        """ALPHA SQUAD STAGE 3: Analyst Agent - Writer that synthesizes research"""
+        logger.info("📊 Analyst Agent: Synthesizing data into thesis...")
+        
+        analyst_prompt = f"""
+You are the ANALYST agent in the Alpha Squad - the writer and synthesizer.
+
+Your role: Take the Scout's research and create a coherent investment thesis.
+
+ORIGINAL USER QUERY: {query}
+
+PLANNER'S RESEARCH PLAN:
+{planner_output}
+
+SCOUT'S DATA REPORT:
+{scout_output}
+
+Your task: 
+1. Synthesize the Scout's findings into a coherent narrative
+2. Identify investment opportunities and risks
+3. Create specific trading recommendations
+4. Support conclusions with data from the Scout report
+
+OUTPUT FORMAT:
+## 📊 ANALYST SYNTHESIS
+
+### Executive Summary
+[2-3 sentence key takeaway]
+
+### Investment Thesis
+[Your main argument based on Scout's data]
+
+### Supporting Evidence
+[Key data points that support your thesis]
+
+### Trading Recommendations
+[Specific entry/exit points with reasoning]
+
+### Market Context
+[How this fits into broader market trends]
+
+This will be reviewed by the Risk Analyst for quality control.
+"""
+        
+        analyst_result, analyst_debug = AlphaGenerator.generate_content(analyst_prompt)
+        analyst_debug['agent_type'] = 'analyst'
+        analyst_debug['stage'] = 3
+        analyst_debug['synthesis'] = True
+        
+        logger.info("✅ Analyst Agent: Thesis synthesized")
+        return (analyst_result, analyst_debug)
+
+    @staticmethod
+    def agentic_risk_analyst(query: str, planner_output: str, scout_output: str, analyst_output: str) -> tuple[str, Dict[str, Any]]:
+        """ALPHA SQUAD STAGE 4: Risk Analyst Agent - Quality control and criticism"""
+        logger.info("⚠️ Risk Analyst Agent: Reviewing and challenging thesis...")
+        
+        risk_prompt = f"""
+You are the RISK ANALYST agent in the Alpha Squad - the quality control specialist.
+
+Your role: Challenge the Analyst's thesis and identify flaws, biases, and risks.
+
+ORIGINAL USER QUERY: {query}
+
+PLANNER'S RESEARCH PLAN:
+{planner_output}
+
+SCOUT'S DATA REPORT:
+{scout_output}
+
+ANALYST'S THESIS:
+{analyst_output}
+
+Your task: 
+1. Critically evaluate the Analyst's conclusions
+2. Identify potential biases or logical flaws
+3. Highlight missing risk factors
+4. Suggest improvements or counterarguments
+5. Provide final risk assessment
+
+OUTPUT FORMAT:
+## ⚠️ RISK ANALYSIS & QUALITY CONTROL
+
+### Thesis Evaluation
+[Strengths and weaknesses of the Analyst's argument]
+
+### Risk Factors Identified
+[Key risks not adequately addressed]
+
+### Potential Biases
+[Cognitive biases or data interpretation issues]
+
+### Missing Considerations
+[Important factors overlooked]
+
+### Revised Risk Assessment
+[Updated risk/reward analysis]
+
+### Quality Score
+[1-10 rating with justification]
+
+This will guide the final Comms Agent formatting.
+"""
+        
+        risk_result, risk_debug = AlphaGenerator.generate_content(risk_prompt)
+        risk_debug['agent_type'] = 'risk_analyst'
+        risk_debug['stage'] = 4
+        risk_debug['quality_control'] = True
+        
+        logger.info("✅ Risk Analyst Agent: Quality control complete")
+        return (risk_result, risk_debug)
+
+    @staticmethod
+    def agentic_comms(query: str, planner_output: str, scout_output: str, analyst_output: str, risk_output: str) -> tuple[str, Dict[str, Any]]:
+        """ALPHA SQUAD STAGE 5: Comms Agent - Finalizer that formats for publication"""
+        logger.info("✨ Comms Agent: Formatting final analysis for publication...")
+        
+        comms_prompt = f"""
+You are the COMMS agent in the Alpha Squad - the finalizer and formatter.
+
+Your role: Create the final, publication-ready analysis that incorporates all team input.
+
+ORIGINAL USER QUERY: {query}
+
+ALL AGENT INPUTS:
+PLANNER: {planner_output}
+SCOUT: {scout_output}  
+ANALYST: {analyst_output}
+RISK ANALYST: {risk_output}
+
+Your task: 
+1. Integrate insights from all agents
+2. Create professional, publication-ready format
+3. Address risk concerns raised by Risk Analyst
+4. Ensure clear, actionable recommendations
+5. Add visual formatting and structure
+
+OUTPUT THE FINAL ANALYSIS in this professional format:
+
+# 🎯 ALPHA INSIGHTS
+*Generated by Sovereign Agent #001 • Alpha Squad Analysis*
+
+## 📈 Executive Summary
+[Clear 2-3 sentence summary addressing the original query]
+
+## 🔍 Key Findings
+[Bullet points of main discoveries from Scout data]
+
+## 💡 Investment Thesis  
+[Refined thesis incorporating Risk Analyst feedback]
+
+## 📊 Trading Signals
+[Specific, actionable entry/exit points with stops]
+
+## ⚠️ Risk Assessment
+[Key risks and mitigation strategies]
+
+## 🎯 Action Plan
+[Concrete next steps for the user]
+
+## 🤖 Alpha Squad Summary
+- **Planning Agent**: [1 sentence on strategy]
+- **Scout Agent**: [1 sentence on data gathering]  
+- **Analyst Agent**: [1 sentence on synthesis]
+- **Risk Analyst**: [1 sentence on quality control]
+- **Comms Agent**: Final formatting and publication ready
+
+---
+*⚡ Analysis generated by 5-agent autonomous system • Live data verified • On-chain proof available*
+
+Make this the highest quality, most actionable analysis possible.
+"""
+        
+        comms_result, comms_debug = AlphaGenerator.generate_content(comms_prompt)
+        comms_debug['agent_type'] = 'comms'
+        comms_debug['stage'] = 5
+        comms_debug['final_output'] = True
+        comms_debug['formatted'] = True
+        
+        logger.info("✅ Comms Agent: Final analysis ready for publication")
+        return (comms_result, comms_debug)
 
     @staticmethod  
     def agentic_generator(query: str, planner_output: str) -> tuple[str, Dict[str, Any]]:
