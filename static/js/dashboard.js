@@ -1166,20 +1166,23 @@ async function showAgenticWorkflow() {
         await new Promise(resolve => setTimeout(resolve, stage.duration));
     }
     
-    // Add final transition effect
+    // Skip the "Analysis Complete" step entirely for instant transition to results
+    // This eliminates the false waiting period and makes the demo flow smoothly
+    
+    // Optional: Show brief "Processing..." instead
     loadingContent.innerHTML = `
         <div class="text-center space-y-4">
             <div class="flex justify-center">
-                <div class="w-16 h-16 rounded-full bg-green-600 flex items-center justify-center animate-bounce">
-                    <i class="fas fa-check text-2xl text-white"></i>
+                <div class="w-16 h-16 rounded-full bg-blue-600 flex items-center justify-center">
+                    <i class="fas fa-cog fa-spin text-2xl text-white"></i>
                 </div>
             </div>
-            <h3 class="text-xl font-bold text-green-400">Analysis Complete!</h3>
-            <p class="text-gray-300">Displaying results...</p>
+            <h3 class="text-xl font-bold text-blue-400">Processing...</h3>
+            <p class="text-gray-300">Finalizing analysis</p>
         </div>
     `;
     
-    await new Promise(resolve => setTimeout(resolve, 300)); // Much shorter delay
+    // No delay - return immediately to start API call
 }
 
 // Add required CSS animations
