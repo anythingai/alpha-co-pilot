@@ -1955,47 +1955,74 @@ def get_marketplace_listings():
 def view_marketplace_listing(listing_id):
     """View a specific marketplace listing - public page"""
     try:
+        logger.info(f"🔍 Attempting to view listing: {listing_id}")
         marketplace_file = 'marketplace_listings.json'
+        
         try:
             with open(marketplace_file, 'r') as f:
                 listings = json.load(f)
-        except (FileNotFoundError, json.JSONDecodeError):
+            logger.info(f"📋 Loaded {len(listings)} listings from file")
+        except FileNotFoundError:
+            logger.error(f"❌ Marketplace file not found: {marketplace_file}")
             return render_template('404.html'), 404
+        except json.JSONDecodeError as e:
+            logger.error(f"❌ JSON decode error: {e}")
+            return render_template('404.html'), 404
+        
+        # Debug: Log all available listing IDs
+        available_ids = [item.get('id', 'NO_ID') for item in listings]
+        logger.info(f"📝 Available listing IDs: {available_ids}")
         
         # Find the listing
         listing = None
         for item in listings:
-            if item['id'] == listing_id:
+            if item.get('id') == listing_id:
                 listing = item
+                logger.info(f"✅ Found matching listing: {item.get('title', 'NO_TITLE')}")
                 break
         
         if not listing:
+            logger.error(f"❌ Listing not found: {listing_id} (available: {available_ids})")
             return render_template('404.html'), 404
         
         # Increment view count
         listing['views'] += 1
-        with open(marketplace_file, 'w') as f:
-            json.dump(listings, f, indent=2)
+        try:
+            with open(marketplace_file, 'w') as f:
+                json.dump(listings, f, indent=2)
+            logger.info(f"📈 Incremented view count for: {listing_id}")
+        except Exception as e:
+            logger.warning(f"⚠️ Could not update view count: {e}")
         
         return render_template('marketplace_listing.html', listing=listing)
         
     except Exception as e:
-        logger.error(f"❌ Error viewing marketplace listing: {e}")
+        logger.error(f"❌ Error viewing marketplace listing {listing_id}: {e}")
         return render_template('404.html'), 404
 
 @app.route('/marketplace')
 def marketplace_index():
     """Marketplace homepage"""
     try:
+        logger.info("🏪 Loading marketplace homepage")
         marketplace_file = 'marketplace_listings.json'
         try:
             with open(marketplace_file, 'r') as f:
                 listings = json.load(f)
-        except (FileNotFoundError, json.JSONDecodeError):
+            logger.info(f"📋 Loaded {len(listings)} listings for marketplace")
+        except FileNotFoundError:
+            logger.error(f"❌ Marketplace file not found: {marketplace_file}")
+            listings = []
+        except json.JSONDecodeError as e:
+            logger.error(f"❌ JSON decode error in marketplace: {e}")
             listings = []
         
         # Sort by created_at desc
         listings.sort(key=lambda x: x.get('created_at', ''), reverse=True)
+        
+        # Debug: Log listing IDs being sent to template
+        listing_ids = [item.get('id') for item in listings[:20]]
+        logger.info(f"📝 Marketplace displaying listings: {listing_ids}")
         
         return render_template('marketplace.html', listings=listings[:20])
         
