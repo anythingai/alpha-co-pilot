@@ -60,6 +60,7 @@ const errorState = document.getElementById('errorState');
 const analysisContent = document.getElementById('analysisContent');
 const coinDataSection = document.getElementById('coinDataSection');
 const copyBtn = document.getElementById('copyBtn');
+const quickStartTemplates = document.getElementById('quickStartTemplates');
 
 // Web3 elements
 const connectWalletBtn = document.getElementById('navConnectWalletBtn');
@@ -838,6 +839,9 @@ generateBtn.addEventListener('click', async () => {
         </span>
     `;
 
+    // Hide Quick Start Templates during analysis for cleaner UX
+    quickStartTemplates.style.display = 'none';
+
     // START AGENTIC WORKFLOW VISUALIZATION (Critical for demo "wow" factor)
     await showAgenticWorkflow();
     
@@ -868,6 +872,9 @@ generateBtn.addEventListener('click', async () => {
         // Reset button state
         generateBtn.disabled = false;
         generateBtn.innerHTML = originalHTML;
+        
+        // Show Quick Start Templates again after analysis completes
+        quickStartTemplates.style.display = 'block';
     }
 });
 
