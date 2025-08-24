@@ -1,0 +1,29 @@
+{
+  "version": 2,
+  "name": "alpha-co-pilot",
+  "builds": [
+    {
+      "src": "Dockerfile",
+      "use": "@vercel/docker"
+    }
+  ],
+  "routes": [
+    {
+      "src": "/(.*)",
+      "dest": "/"
+    }
+  ],
+  "env": {
+    "PORT": "5000",
+    "PYTHONPATH": "/app",
+    "FLASK_ENV": "production"
+  },
+  "functions": {
+    "app/main.py": {
+      "memory": 1024,
+      "maxDuration": 30
+    }
+  },
+  "regions": ["iad1"],
+  "outputDirectory": "build"
+}

@@ -1,0 +1,89 @@
+# Version control
+.git
+.gitignore
+*.md
+README.MD
+
+# Python
+__pycache__
+*.pyc
+*.pyo
+*.pyd
+.Python
+*.egg-info/
+.pytest_cache/
+.coverage
+.tox/
+.cache
+.mypy_cache
+.python-version
+
+# Virtual environments
+venv/
+env/
+ENV/
+env.bak/
+venv.bak/
+
+# IDE and editors
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Environment files
+.env
+.env.*
+!.env.example
+
+# Documentation
+docs/
+*.md
+LICENSE
+
+# Development files
+Dockerfile.dev
+docker-compose.dev.yml
+.dockerignore
+
+# Logs
+*.log
+logs/
+
+# Temporary files
+tmp/
+temp/
+
+# Node modules (if any)
+node_modules/
+
+# Build artifacts
+build/
+dist/
+*.tar.gz
+
+# Testing
+tests/
+test_*
+*_test.py
+
+# Jupyter notebooks
+*.ipynb
+
+# Backup files
+*.bak
+*.backup
+
+# Local development
+local/
+dev/
