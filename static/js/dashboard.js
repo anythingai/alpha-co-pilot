@@ -31,6 +31,16 @@ generateBtn.addEventListener('click', async () => {
         return;
     }
 
+    // Update button state
+    generateBtn.disabled = true;
+    const originalHTML = generateBtn.innerHTML;
+    generateBtn.innerHTML = `
+        <span class="flex items-center justify-center space-x-2">
+            <div class="loading-spinner w-4 h-4"></div>
+            <span>Generating...</span>
+        </span>
+    `;
+
     showLoading();
     
     try {
@@ -46,21 +56,30 @@ generateBtn.addEventListener('click', async () => {
         
         if (data.success) {
             showResults(data);
+            showNotification('Analysis generated successfully!', 'success');
         } else {
             showError(data.error || 'Failed to generate alpha');
         }
     } catch (error) {
         showError('Network error. Please try again.');
         console.error('Error:', error);
+    } finally {
+        // Reset button state
+        generateBtn.disabled = false;
+        generateBtn.innerHTML = originalHTML;
     }
 });
 
 shareBtn.addEventListener('click', async () => {
     if (!currentAnalysis) return;
 
+    const originalHTML = shareBtn.innerHTML;
     try {
         shareBtn.disabled = true;
-        shareBtn.textContent = 'Sharing...';
+        shareBtn.innerHTML = `
+            <div class="loading-spinner w-4 h-4 mr-2"></div>
+            Sharing...
+        `;
         
         const response = await fetch('/api/share', {
             method: 'POST',
@@ -76,33 +95,68 @@ shareBtn.addEventListener('click', async () => {
         const data = await response.json();
         
         if (data.success) {
-            shareBtn.textContent = 'Shared! ✅';
-            shareBtn.className = 'bg-green-600 text-white font-medium py-2 px-6 rounded-lg';
+            shareBtn.innerHTML = `
+                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                </svg>
+                Shared!
+            `;
+            shareBtn.classList.add('bg-green-600');
+            shareBtn.classList.remove('bg-primary');
+            showNotification('Successfully shared to Discord!', 'success');
         } else {
-            shareBtn.textContent = 'Share Failed';
-            shareBtn.className = 'bg-red-600 text-white font-medium py-2 px-6 rounded-lg';
+            shareBtn.innerHTML = 'Share Failed';
+            shareBtn.classList.add('bg-red-600');
+            shareBtn.classList.remove('bg-primary');
+            showNotification('Failed to share to Discord', 'error');
         }
         
         setTimeout(() => {
             shareBtn.disabled = false;
-            shareBtn.textContent = 'Share to Discord 🚀';
-            shareBtn.className = 'bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-6 rounded-lg transition-colors duration-200';
+            shareBtn.innerHTML = originalHTML;
+            shareBtn.classList.remove('bg-green-600', 'bg-red-600');
+            shareBtn.classList.add('bg-primary');
         }, 3000);
     } catch (error) {
         console.error('Share error:', error);
-        shareBtn.textContent = 'Share Failed';
-        shareBtn.className = 'bg-red-600 text-white font-medium py-2 px-6 rounded-lg';
+        shareBtn.innerHTML = 'Share Failed';
+        shareBtn.classList.add('bg-red-600');
+        shareBtn.classList.remove('bg-primary');
+        showNotification('Network error while sharing', 'error');
+        
+        setTimeout(() => {
+            shareBtn.disabled = false;
+            shareBtn.innerHTML = originalHTML;
+            shareBtn.classList.remove('bg-red-600');
+            shareBtn.classList.add('bg-primary');
+        }, 3000);
     }
 });
 
-copyBtn.addEventListener('click', () => {
+copyBtn.addEventListener('click', async () => {
     if (currentAnalysis) {
-        navigator.clipboard.writeText(currentAnalysis).then(() => {
-            copyBtn.textContent = 'Copied! ✅';
+        try {
+            await navigator.clipboard.writeText(currentAnalysis);
+            const originalHTML = copyBtn.innerHTML;
+            copyBtn.innerHTML = `
+                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                </svg>
+                Copied!
+            `;
+            copyBtn.classList.add('bg-green-600', 'text-white');
+            copyBtn.classList.remove('bg-muted', 'text-muted-foreground');
+            
             setTimeout(() => {
-                copyBtn.textContent = 'Copy Text';
+                copyBtn.innerHTML = originalHTML;
+                copyBtn.classList.remove('bg-green-600', 'text-white');
+                copyBtn.classList.add('bg-muted', 'text-muted-foreground');
             }, 2000);
-        });
+            
+            showNotification('Analysis copied to clipboard!', 'success');
+        } catch (error) {
+            showNotification('Failed to copy to clipboard', 'error');
+        }
     }
 });
 
@@ -151,22 +205,104 @@ function hideAllStates() {
 
 function createCoinCard(coin) {
     const card = document.createElement('div');
-    const priceChange = coin.price_change_24h || 0;
-    const changeColor = priceChange >= 0 ? 'text-green-400' : 'text-red-400';
-    const changeIcon = priceChange >= 0 ? '↗️' : '↘️';
+    const priceChange = coin.price_change_24h || coin.change_24h_pct || 0;
+    const price = coin.current_price || coin.price_usd || 0;
+    const symbol = coin.symbol ? coin.symbol.toUpperCase() : 'N/A';
+    const name = coin.name || coin.id || 'Unknown';
     
-    card.className = 'bg-gray-700 rounded-lg p-4';
+    const changeColor = priceChange >= 0 ? 'text-green-500' : 'text-red-500';
+    const changeIcon = priceChange >= 0 ? '↗️' : '↘️';
+    const changeBg = priceChange >= 0 ? 'bg-green-500/10' : 'bg-red-500/10';
+    
+    card.className = 'bg-card border border-border rounded-lg p-6 card-hover';
     card.innerHTML = `
-        <div class="text-center">
-            <h4 class="font-bold text-white text-lg">${coin.symbol}</h4>
-            <p class="text-gray-400 text-sm mb-2">${coin.name}</p>
-            <div class="text-xl font-bold text-white mb-1">
-                $${coin.current_price ? coin.current_price.toLocaleString() : 'N/A'}
+        <div class="space-y-4">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center space-x-3">
+                    <div class="w-10 h-10 bg-muted rounded-full flex items-center justify-center">
+                        <span class="text-foreground font-semibold text-sm">${symbol.charAt(0)}</span>
+                    </div>
+                    <div>
+                        <h4 class="font-semibold text-foreground text-base">${symbol}</h4>
+                        <p class="text-muted-foreground text-xs">${name}</p>
+                    </div>
+                </div>
+                <div class="text-right">
+                    <div class="text-lg font-semibold text-foreground">
+                        $${price ? formatPrice(price) : 'N/A'}
+                    </div>
+                </div>
             </div>
-            <div class="${changeColor} text-sm font-medium">
-                ${changeIcon} ${priceChange ? priceChange.toFixed(2) : '0.00'}%
+            
+            <div class="flex items-center justify-between pt-2 border-t border-border">
+                <span class="text-muted-foreground text-xs">24h Change</span>
+                <div class="flex items-center space-x-2">
+                    <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${changeBg} ${changeColor}">
+                        <span class="mr-1">${changeIcon}</span>
+                        ${priceChange ? Math.abs(priceChange).toFixed(2) : '0.00'}%
+                    </span>
+                </div>
             </div>
         </div>
     `;
     return card;
+}
+
+function formatPrice(price) {
+    if (price >= 1000000) {
+        return (price / 1000000).toFixed(2) + 'M';
+    } else if (price >= 1000) {
+        return (price / 1000).toFixed(2) + 'K';
+    } else if (price >= 1) {
+        return price.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    } else {
+        return price.toFixed(6);
+    }
+}
+
+function showNotification(message, type = 'info') {
+    // Remove existing notifications
+    const existingNotification = document.querySelector('.notification');
+    if (existingNotification) {
+        existingNotification.remove();
+    }
+
+    const notification = document.createElement('div');
+    notification.className = 'notification fixed top-4 right-4 z-50 max-w-sm';
+    
+    const bgColor = type === 'success' ? 'bg-green-600' : type === 'error' ? 'bg-red-600' : 'bg-blue-600';
+    const icon = type === 'success' ? 
+        `<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+         </svg>` : 
+        type === 'error' ?
+        `<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+         </svg>` :
+        `<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+         </svg>`;
+
+    notification.innerHTML = `
+        <div class="${bgColor} text-white px-4 py-3 rounded-lg shadow-lg flex items-center space-x-3 slide-up">
+            ${icon}
+            <span class="text-sm font-medium">${message}</span>
+            <button onclick="this.parentElement.parentElement.remove()" class="ml-2 text-white/80 hover:text-white">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                </svg>
+            </button>
+        </div>
+    `;
+
+    document.body.appendChild(notification);
+
+    // Auto-remove after 4 seconds
+    setTimeout(() => {
+        if (notification.parentElement) {
+            notification.style.opacity = '0';
+            notification.style.transform = 'translateX(100%)';
+            setTimeout(() => notification.remove(), 300);
+        }
+    }, 4000);
 }

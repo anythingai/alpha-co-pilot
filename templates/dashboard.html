@@ -5,16 +5,51 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Alpha Co-Pilot - Dashboard</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        background: '#09090b',
+                        foreground: '#fafafa',
+                        card: '#09090b',
+                        'card-foreground': '#fafafa',
+                        popover: '#09090b',
+                        'popover-foreground': '#fafafa',
+                        primary: '#fafafa',
+                        'primary-foreground': '#09090b',
+                        secondary: '#27272a',
+                        'secondary-foreground': '#fafafa',
+                        muted: '#27272a',
+                        'muted-foreground': '#a1a1aa',
+                        accent: '#27272a',
+                        'accent-foreground': '#fafafa',
+                        destructive: '#dc2626',
+                        'destructive-foreground': '#fafafa',
+                        border: '#27272a',
+                        input: '#27272a',
+                        ring: '#d4d4d8'
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'system-ui', 'sans-serif']
+                    }
+                }
+            }
+        }
+    </script>
     <style>
-        .gradient-bg {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        .shadcn-bg {
+            background: linear-gradient(135deg, #18181b 0%, #09090b 100%);
         }
         .loading-spinner {
-            border: 3px solid #f3f3f3;
-            border-top: 3px solid #667eea;
+            border: 2px solid #27272a;
+            border-top: 2px solid #fafafa;
             border-radius: 50%;
-            width: 30px;
-            height: 30px;
+            width: 24px;
+            height: 24px;
             animation: spin 1s linear infinite;
         }
         @keyframes spin {
@@ -22,112 +57,278 @@
             100% { transform: rotate(360deg); }
         }
         .fade-in {
-            animation: fadeIn 0.5s ease-in;
+            animation: fadeIn 0.6s ease-out;
         }
         @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .slide-up {
+            animation: slideUp 0.4s ease-out;
+        }
+        @keyframes slideUp {
             from { opacity: 0; transform: translateY(20px); }
             to { opacity: 1; transform: translateY(0); }
         }
+        .glow-border {
+            box-shadow: 0 0 0 1px rgba(212, 212, 216, 0.1), 0 1px 3px 0 rgba(0, 0, 0, 0.5);
+        }
+        .glow-border:focus-within {
+            box-shadow: 0 0 0 2px rgba(212, 212, 216, 0.2), 0 4px 12px 0 rgba(0, 0, 0, 0.7);
+        }
+        .button-primary {
+            background: linear-gradient(135deg, #fafafa 0%, #e4e4e7 100%);
+            transition: all 0.2s ease;
+        }
+        .button-primary:hover {
+            background: linear-gradient(135deg, #e4e4e7 0%, #d4d4d8 100%);
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.8);
+        }
+        .card-hover {
+            transition: all 0.3s ease;
+        }
+        .card-hover:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.6);
+        }
     </style>
 </head>
-<body class="bg-gray-900 text-white">
-    <div class="min-h-screen">
+<body class="bg-background text-foreground font-sans antialiased">
+    <div class="flex flex-col min-h-screen">
         <!-- Header -->
-        <header class="gradient-bg shadow-lg">
-            <div class="max-w-6xl mx-auto px-4 py-6">
+        <header class="border-b border-border bg-background/95 backdrop-blur-md sticky top-0 z-50 shadow-sm">
+            <div class="max-w-7xl mx-auto px-6 py-4">
                 <div class="flex items-center justify-between">
-                    <div class="flex items-center space-x-3">
-                        <div class="w-10 h-10 bg-white rounded-full flex items-center justify-center">
-                            <span class="text-purple-600 font-bold text-xl">α</span>
+                    <!-- Logo and Brand -->
+                    <div class="flex items-center space-x-4">
+                        <div class="flex items-center space-x-3">
+                            <div class="relative">
+                                <div class="w-10 h-10 bg-gradient-to-br from-primary to-primary/80 text-primary-foreground rounded-xl flex items-center justify-center shadow-lg">
+                                    <span class="font-bold text-lg">α</span>
+                                </div>
+                                <div class="absolute -top-1 -right-1 w-3 h-3 bg-green-500 rounded-full border-2 border-background"></div>
+                            </div>
+                            <div>
+                                <h1 class="text-xl font-bold text-foreground tracking-tight">Alpha Co-Pilot</h1>
+                                <p class="text-xs text-muted-foreground font-medium">AI-Powered Crypto Intelligence</p>
+                            </div>
                         </div>
-                        <h1 class="text-2xl font-bold text-white">Alpha Co-Pilot</h1>
                     </div>
-                    <div class="text-sm text-gray-200">
-                        Connected to Whop • Demo User
+
+                    <!-- Right side - Status and User -->
+                    <div class="flex items-center space-x-4">
+                        <!-- API Status -->
+                        <div class="hidden md:flex items-center space-x-3">
+                            <div class="flex items-center space-x-2 text-sm">
+                                <div class="flex items-center space-x-1.5">
+                                    <div class="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                                    <span class="text-muted-foreground font-medium">Live Data</span>
+                                </div>
+                            </div>
+                            <div class="h-4 w-px bg-border"></div>
+                            <div class="flex items-center space-x-2 text-sm">
+                                <svg class="w-4 h-4 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
+                                </svg>
+                                <span class="text-muted-foreground font-medium">AI Ready</span>
+                            </div>
+                        </div>
+
+                        <!-- User Badge -->
+                        <div class="flex items-center space-x-3">
+                            <div class="hidden sm:flex items-center space-x-2 text-sm bg-muted/80 px-3 py-1.5 rounded-lg border border-border">
+                                <div class="w-2 h-2 bg-blue-500 rounded-full"></div>
+                                <span class="text-muted-foreground font-medium">Whop Connected</span>
+                            </div>
+                            <div class="flex items-center space-x-2 bg-accent/50 px-3 py-1.5 rounded-lg border border-border">
+                                <div class="w-6 h-6 bg-gradient-to-br from-blue-500 to-purple-500 rounded-full flex items-center justify-center">
+                                    <span class="text-white text-xs font-bold">D</span>
+                                </div>
+                                <span class="text-accent-foreground font-medium text-sm">Beta User</span>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
         </header>
 
         <!-- Main Content -->
-        <main class="max-w-4xl mx-auto px-4 py-12">
+        <main class="flex-1 max-w-5xl mx-auto px-6 py-8">
             <!-- Hero Section -->
-            <div class="text-center mb-12">
-                <h2 class="text-4xl font-bold text-white mb-4">From Data to Alpha in Seconds</h2>
-                <p class="text-xl text-gray-300 mb-8">Enter any crypto topic and get instant, professional analysis for your community</p>
+            <div class="text-center mb-20">
+                <div class="max-w-4xl mx-auto">
+                    <!-- Main Heading -->
+                    <div class="mb-8">
+                        <h2 class="text-4xl sm:text-5xl lg:text-6xl font-bold text-foreground mb-6 tracking-tight leading-tight">
+                            From Data to Alpha
+                            <span class="block text-muted-foreground mt-2">in Seconds</span>
+                        </h2>
+                        <p class="text-lg sm:text-xl text-muted-foreground max-w-3xl mx-auto leading-relaxed">
+                            Enter any crypto topic and get instant, professional analysis powered by real-time data and AI
+                        </p>
+                    </div>
+                    
+                    <!-- Feature badges -->
+                    <div class="flex flex-wrap justify-center gap-3 mb-12">
+                        <span class="inline-flex items-center px-4 py-2 rounded-full text-sm font-medium bg-muted/80 text-muted-foreground border border-border">
+                            <div class="w-2 h-2 bg-green-500 rounded-full mr-2"></div>
+                            Real-time Data
+                        </span>
+                        <span class="inline-flex items-center px-4 py-2 rounded-full text-sm font-medium bg-muted/80 text-muted-foreground border border-border">
+                            <div class="w-2 h-2 bg-blue-500 rounded-full mr-2"></div>
+                            AI Analysis
+                        </span>
+                        <span class="inline-flex items-center px-4 py-2 rounded-full text-sm font-medium bg-muted/80 text-muted-foreground border border-border">
+                            <div class="w-2 h-2 bg-purple-500 rounded-full mr-2"></div>
+                            Discord Integration
+                        </span>
+                    </div>
+                </div>
             </div>
 
             <!-- Input Section -->
-            <div class="bg-gray-800 rounded-xl shadow-2xl p-8 mb-8">
+            <div class="bg-card border border-border rounded-xl p-8 mb-8 glow-border">
                 <div class="space-y-6">
-                    <div>
-                        <label class="block text-sm font-medium text-gray-300 mb-2">What alpha do you want to generate?</label>
+                    <div class="space-y-3">
+                        <label class="block text-sm font-medium text-foreground">
+                            What alpha do you want to generate?
+                        </label>
                         <div class="relative">
                             <input 
                                 type="text" 
                                 id="queryInput"
                                 placeholder="e.g., Analyze trending AI coins on Solana"
-                                class="w-full px-4 py-4 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:ring-2 focus:ring-purple-500 focus:border-transparent text-lg"
+                                class="w-full px-4 py-4 bg-input border border-border rounded-lg text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent text-base transition-all duration-200"
                             />
                         </div>
+                        <p class="text-xs text-muted-foreground">
+                            Try: "Top DeFi tokens", "Solana meme coins", "Layer 2 analysis"
+                        </p>
                     </div>
                     <button 
                         id="generateBtn"
-                        class="w-full gradient-bg text-white font-semibold py-4 px-6 rounded-lg hover:shadow-lg transform hover:scale-105 transition-all duration-200 text-lg"
+                        class="w-full button-primary text-primary-foreground font-medium py-4 px-6 rounded-lg text-base disabled:opacity-50 disabled:cursor-not-allowed"
                     >
-                        Generate Alpha ✨
+                        <span class="flex items-center justify-center space-x-2">
+                            <span>Generate Alpha</span>
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6"></path>
+                            </svg>
+                        </span>
                     </button>
                 </div>
             </div>
 
             <!-- Loading State -->
-            <div id="loadingState" class="hidden text-center py-12">
-                <div class="loading-spinner mx-auto mb-4"></div>
-                <p class="text-gray-300 text-lg">Analyzing market data and generating alpha...</p>
+            <div id="loadingState" class="hidden">
+                <div class="bg-card border border-border rounded-xl p-8 text-center slide-up">
+                    <div class="flex flex-col items-center space-y-4">
+                        <div class="loading-spinner"></div>
+                        <div>
+                            <p class="text-foreground font-medium">Analyzing market data</p>
+                            <p class="text-muted-foreground text-sm">This may take a few moments...</p>
+                        </div>
+                    </div>
+                </div>
             </div>
 
             <!-- Results Section -->
             <div id="resultsSection" class="hidden fade-in">
-                <div class="bg-gray-800 rounded-xl shadow-2xl p-8">
-                    <div class="flex items-center justify-between mb-6">
-                        <h3 class="text-2xl font-bold text-white">Fresh Alpha Generated</h3>
-                        <div class="flex space-x-4">
+                <div class="bg-card border border-border rounded-xl p-8">
+                    <div class="flex flex-col sm:flex-row sm:items-center justify-between mb-8 space-y-4 sm:space-y-0">
+                        <div>
+                            <h3 class="text-2xl font-semibold text-foreground mb-1">Analysis Complete</h3>
+                            <p class="text-muted-foreground text-sm">Fresh alpha generated from real-time data</p>
+                        </div>
+                        <div class="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-3">
                             <button 
                                 id="shareBtn"
-                                class="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-6 rounded-lg transition-colors duration-200"
+                                class="inline-flex items-center justify-center px-4 py-2 bg-primary text-primary-foreground font-medium rounded-lg hover:bg-primary/90 transition-colors duration-200 text-sm"
                             >
-                                Share to Discord 🚀
+                                <svg class="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 24 24">
+                                    <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/>
+                                </svg>
+                                Share to Discord
                             </button>
                             <button 
                                 id="copyBtn"
-                                class="bg-gray-600 hover:bg-gray-700 text-white font-medium py-2 px-6 rounded-lg transition-colors duration-200"
+                                class="inline-flex items-center justify-center px-4 py-2 bg-muted text-muted-foreground font-medium rounded-lg hover:bg-muted/80 transition-colors duration-200 text-sm"
                             >
+                                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"></path>
+                                </svg>
                                 Copy Text
                             </button>
                         </div>
                     </div>
                     
                     <!-- Analysis Output -->
-                    <div class="bg-gray-900 rounded-lg p-6 mb-6">
-                        <div id="analysisContent" class="text-gray-100 whitespace-pre-wrap font-mono text-sm leading-relaxed"></div>
+                    <div class="bg-muted/30 border border-border rounded-lg p-6 mb-8">
+                        <div id="analysisContent" class="text-foreground prose prose-invert max-w-none prose-headings:text-foreground prose-p:text-muted-foreground prose-strong:text-foreground prose-code:text-foreground prose-pre:bg-background"></div>
                     </div>
                     
                     <!-- Coin Data Cards -->
-                    <div id="coinDataSection" class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div id="coinDataSection" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                         <!-- Coin cards will be inserted here dynamically -->
                     </div>
                 </div>
             </div>
 
             <!-- Error State -->
-            <div id="errorState" class="hidden bg-red-900 border border-red-700 rounded-lg p-6 text-center">
-                <p class="text-red-300" id="errorMessage"></p>
+            <div id="errorState" class="hidden">
+                <div class="bg-card border border-destructive rounded-xl p-8 text-center slide-up">
+                    <div class="flex flex-col items-center space-y-4">
+                        <div class="w-12 h-12 bg-destructive/10 rounded-full flex items-center justify-center">
+                            <svg class="w-6 h-6 text-destructive" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z"></path>
+                            </svg>
+                        </div>
+                        <div>
+                            <p class="text-foreground font-medium mb-1">Something went wrong</p>
+                            <p class="text-destructive text-sm" id="errorMessage"></p>
+                        </div>
+                    </div>
+                </div>
             </div>
         </main>
 
         <!-- Footer -->
-        <footer class="text-center py-8 text-gray-500">
-            <p>Built for the Whop App Store • Powered by Real-Time Data</p>
+        <footer class="border-t border-border bg-background/50 backdrop-blur-sm mt-8">
+            <div class="max-w-7xl mx-auto px-6 py-4">
+                <div class="flex flex-col md:flex-row md:items-center justify-between space-y-3 md:space-y-0">
+                    <!-- Brand Section -->
+                    <div class="flex items-center space-x-4">
+                        <div class="flex items-center space-x-3">
+                            <div class="w-7 h-7 bg-gradient-to-br from-primary to-primary/80 text-primary-foreground rounded-lg flex items-center justify-center">
+                                <span class="font-bold text-sm">α</span>
+                            </div>
+                            <div>
+                                <h3 class="text-sm font-semibold text-foreground">Alpha Co-Pilot</h3>
+                                <p class="text-xs text-muted-foreground">AI Crypto Analysis</p>
+                            </div>
+                        </div>
+                        
+                        <!-- Tech badges -->
+                        <div class="hidden sm:flex items-center space-x-2">
+                            <span class="text-xs text-muted-foreground bg-muted/50 px-2 py-1 rounded">Azure AI</span>
+                            <span class="text-xs text-muted-foreground bg-muted/50 px-2 py-1 rounded">Live Data</span>
+                        </div>
+                    </div>
+
+                    <!-- Footer Links -->
+                    <div class="flex flex-col sm:flex-row sm:items-center space-y-2 sm:space-y-0 sm:space-x-6 text-xs text-muted-foreground">
+                        <span>Built for Whop App Store</span>
+                        <span class="hidden sm:inline">•</span>
+                        <span>© 2025 Alpha Co-Pilot</span>
+                        <span class="hidden sm:inline">•</span>
+                        <div class="flex items-center space-x-3">
+                            <a href="#" class="hover:text-foreground transition-colors">Privacy</a>
+                            <a href="#" class="hover:text-foreground transition-colors">Support</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </footer>
     </div>
 

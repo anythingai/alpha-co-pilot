@@ -92,7 +92,7 @@ def save_html_templates():
                         <h1 class="text-2xl font-bold text-white">Alpha Co-Pilot</h1>
                     </div>
                     <div class="text-sm text-gray-200">
-                        Connected to Whop • Demo User
+                        Connected to Whop • Beta User
                     </div>
                 </div>
             </div>
