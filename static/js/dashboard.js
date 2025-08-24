@@ -70,9 +70,6 @@ const disconnectWalletBtn = document.getElementById('disconnectWalletBtn');
 // Pre-filled prompt templates
 const promptTemplates = document.querySelectorAll('.prompt-template');
 
-// Quick search cards
-const quickSearchCards = document.querySelectorAll('.quick-search-card');
-
 // ============================================================================
 // WEB3 FUNCTIONS
 // ============================================================================
@@ -747,21 +744,6 @@ promptTemplates.forEach(template => {
         setTimeout(() => {
             generateBtn.click();
         }, 500);
-    });
-});
-
-// Quick search card functionality
-quickSearchCards.forEach(card => {
-    card.addEventListener('click', () => {
-        const searchQuery = card.getAttribute('data-search');
-        queryInput.value = searchQuery;
-        queryInput.focus();
-        // Scroll to input area
-        queryInput.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        // Auto-generate after a short delay
-        setTimeout(() => {
-            generateBtn.click();
-        }, 800);
     });
 });
 
