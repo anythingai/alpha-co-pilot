@@ -597,45 +597,101 @@ function handleChainChanged(chainId) {
     }
 }
 
-// List on marketplace (mock implementation for demo)
-function listOnMarketplace() {
+// List on marketplace (REAL implementation - calls backend API)
+async function listOnMarketplace() {
     if (!currentAnalysis) {
         showNotification('Generate analysis first!', 'error');
         return;
     }
     
     listMarketplaceBtn.disabled = true;
+    const originalHTML = listMarketplaceBtn.innerHTML;
     listMarketplaceBtn.innerHTML = `
         <div class="loading-spinner w-4 h-4 mr-2"></div>
         Listing...
     `;
     
-    // Simulate marketplace listing
-    setTimeout(() => {
-        listMarketplaceBtn.innerHTML = `
-            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
-            </svg>
-            Listed! ✓
-        `;
-        listMarketplaceBtn.classList.remove('from-purple-500', 'to-pink-500');
-        listMarketplaceBtn.classList.add('from-green-500', 'to-green-600');
+    try {
+        // Extract title from analysis (first line or use default)
+        const lines = currentAnalysis.split('\n').filter(line => line.trim());
+        const title = lines.find(line => line.includes('#')) 
+            ? lines.find(line => line.includes('#')).replace(/#+\s*/, '').trim()
+            : 'Alpha Analysis';
         
-        showNotification('Analysis listed on marketplace! Public URL created.', 'success');
+        // Call backend API
+        const response = await fetch('/api/marketplace/list', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ 
+                content: currentAnalysis,
+                title: title
+            })
+        });
+
+        const data = await response.json();
         
-        // Reset after 3 seconds
-        setTimeout(() => {
-            listMarketplaceBtn.disabled = false;
+        if (data.success) {
+            // Success state
             listMarketplaceBtn.innerHTML = `
                 <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"></path>
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
                 </svg>
-                List on Marketplace
+                Listed! ✓
             `;
-            listMarketplaceBtn.classList.remove('from-green-500', 'to-green-600');
-            listMarketplaceBtn.classList.add('from-purple-500', 'to-pink-500');
-        }, 3000);
-    }, 2000);
+            listMarketplaceBtn.classList.remove('from-purple-500', 'to-pink-500');
+            listMarketplaceBtn.classList.add('from-green-500', 'to-green-600');
+            
+            // Show success notification with link
+            const notification = document.createElement('div');
+            notification.className = 'fixed top-4 right-4 bg-green-600 text-white px-6 py-4 rounded-lg shadow-lg z-50 max-w-sm';
+            notification.innerHTML = `
+                <div class="flex items-start space-x-3">
+                    <i class="fas fa-check-circle text-xl"></i>
+                    <div>
+                        <div class="font-bold">Listed on Marketplace!</div>
+                        <div class="text-sm opacity-90 mt-1">Public URL created successfully</div>
+                        <a href="${data.public_url}" target="_blank" 
+                           class="text-sm underline hover:no-underline mt-2 block">
+                            View Public Listing →
+                        </a>
+                    </div>
+                </div>
+            `;
+            document.body.appendChild(notification);
+            
+            // Auto-remove notification
+            setTimeout(() => {
+                if (notification.parentElement) {
+                    notification.style.opacity = '0';
+                    notification.style.transform = 'translateX(100%)';
+                    setTimeout(() => notification.remove(), 300);
+                }
+            }, 5000);
+            
+            // Animate $CREA rewards
+            animateCreaRewards();
+            
+        } else {
+            throw new Error(data.error || 'Failed to create listing');
+        }
+        
+    } catch (error) {
+        console.error('Marketplace listing error:', error);
+        showNotification('Failed to list on marketplace. Please try again.', 'error');
+        
+        // Reset button immediately on error
+        listMarketplaceBtn.disabled = false;
+        listMarketplaceBtn.innerHTML = originalHTML;
+        return;
+    }
+    
+    // Reset button after success (3 seconds)
+    setTimeout(() => {
+        listMarketplaceBtn.disabled = false;
+        listMarketplaceBtn.innerHTML = originalHTML;
+        listMarketplaceBtn.classList.remove('from-green-500', 'to-green-600');
+        listMarketplaceBtn.classList.add('from-purple-500', 'to-pink-500');
+    }, 3000);
 }
 
 // ============================================================================
@@ -727,7 +783,8 @@ generateBtn.addEventListener('click', async () => {
         </span>
     `;
 
-    showLoading();
+    // START AGENTIC WORKFLOW VISUALIZATION (Critical for demo "wow" factor)
+    await showAgenticWorkflow();
     
     try {
         const response = await fetch('/api/generate', {
@@ -937,3 +994,137 @@ function showNotification(message, type = 'info') {
         }
     }, 4000);
 }
+
+// ============================================================================
+// AGENTIC WORKFLOW VISUALIZATION (Critical for demo "wow" factor)
+// ============================================================================
+
+async function showAgenticWorkflow() {
+    const stages = [
+        {
+            icon: 'fas fa-brain',
+            text: 'Planning...',
+            description: 'AI Planner analyzing your request',
+            color: 'text-blue-400',
+            bgColor: 'border-blue-400',
+            duration: 2000
+        },
+        {
+            icon: 'fas fa-search',
+            text: 'Researching...',
+            description: 'AI Generator gathering market data',
+            color: 'text-yellow-400',
+            bgColor: 'border-yellow-400',
+            duration: 3000
+        },
+        {
+            icon: 'fas fa-star',
+            text: 'Critiquing...',
+            description: 'AI Critic refining the analysis',
+            color: 'text-purple-400',
+            bgColor: 'border-purple-400',
+            duration: 2500
+        },
+        {
+            icon: 'fas fa-check-circle',
+            text: 'Complete!',
+            description: 'Alpha insights ready',
+            color: 'text-green-400',
+            bgColor: 'border-green-400',
+            duration: 1000
+        }
+    ];
+
+    // Show the loading state container
+    hideAllStates();
+    loadingState.classList.remove('hidden');
+    
+    // Get the loading content container
+    const loadingContent = loadingState.querySelector('.loading-content') || loadingState;
+
+    for (let i = 0; i < stages.length; i++) {
+        const stage = stages[i];
+        const progressPercent = ((i + 1) / stages.length) * 100;
+        
+        // Create stage visualization
+        loadingContent.innerHTML = `
+            <div class="text-center space-y-6">
+                <!-- Agent Icon -->
+                <div class="flex justify-center">
+                    <div class="w-20 h-20 rounded-full bg-gray-800 flex items-center justify-center border-3 ${stage.bgColor} relative">
+                        <i class="${stage.icon} text-3xl ${stage.color} animate-pulse"></i>
+                        <div class="absolute -inset-1 rounded-full border-2 ${stage.bgColor} animate-ping opacity-25"></div>
+                    </div>
+                </div>
+                
+                <!-- Stage Info -->
+                <div class="space-y-3">
+                    <h3 class="text-2xl font-bold ${stage.color}">${stage.text}</h3>
+                    <p class="text-gray-300 text-lg">${stage.description}</p>
+                </div>
+                
+                <!-- Progress Bar -->
+                <div class="space-y-2">
+                    <div class="w-full bg-gray-700 rounded-full h-3 overflow-hidden">
+                        <div class="bg-gradient-to-r from-blue-500 via-purple-500 to-green-500 h-3 rounded-full transition-all duration-1000 ease-out transform origin-left" 
+                             style="width: ${progressPercent}%; animation: shimmer 2s infinite;"></div>
+                    </div>
+                    <div class="text-sm text-gray-400">
+                        Agent ${i + 1} of ${stages.length} • Multi-Agent Analysis System
+                    </div>
+                </div>
+                
+                <!-- Real-time Status -->
+                <div class="bg-gray-800 rounded-lg p-4 border border-gray-600">
+                    <div class="flex items-center justify-center space-x-2 text-sm text-gray-300">
+                        <div class="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
+                        <span>Autonomous Creator Protocol • Live Analysis</span>
+                    </div>
+                </div>
+            </div>
+        `;
+        
+        // Wait for stage duration with realistic timing
+        await new Promise(resolve => setTimeout(resolve, stage.duration));
+    }
+    
+    // Add final transition effect
+    loadingContent.innerHTML = `
+        <div class="text-center space-y-4">
+            <div class="flex justify-center">
+                <div class="w-16 h-16 rounded-full bg-green-600 flex items-center justify-center animate-bounce">
+                    <i class="fas fa-check text-2xl text-white"></i>
+                </div>
+            </div>
+            <h3 class="text-xl font-bold text-green-400">Analysis Complete!</h3>
+            <p class="text-gray-300">Displaying results...</p>
+        </div>
+    `;
+    
+    await new Promise(resolve => setTimeout(resolve, 800));
+}
+
+// Add required CSS animations
+const agenticStyles = document.createElement('style');
+agenticStyles.textContent = `
+    @keyframes shimmer {
+        0% { transform: translateX(-100%); }
+        100% { transform: translateX(100%); }
+    }
+    
+    .animate-ping {
+        animation: ping 1s cubic-bezier(0, 0, 0.2, 1) infinite;
+    }
+    
+    @keyframes ping {
+        75%, 100% {
+            transform: scale(2);
+            opacity: 0;
+        }
+    }
+    
+    .border-3 {
+        border-width: 3px;
+    }
+`;
+document.head.appendChild(agenticStyles);

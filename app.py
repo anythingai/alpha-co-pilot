@@ -940,43 +940,34 @@ Rules:
 
     @staticmethod  
     def generate_analysis(query: str) -> tuple[str, Dict[str, Any]]:
-        """Production-ready two-stage analysis: Gemini grounding + o4-mini reasoning."""
-        logger.info(f"🎯 Starting production analysis for: '{query}'")
-        analysis_debug: Dict[str, Any] = {'approach': 'two_stage_production'}
+        """Simulated Agentic Workflow: Planner -> Generator -> Critic (as per PRD)"""
+        logger.info(f"🎯 Starting simulated agentic workflow for: '{query}'")
+        analysis_debug: Dict[str, Any] = {'approach': 'agentic_workflow_simulation'}
         
         try:
-            # STAGE 1: Gemini Grounded Data Discovery
-            logger.info("🔍 STAGE 1: Gemini grounded crypto data discovery")
-            crypto_data = AlphaGenerator.gemini_get_crypto_data(query)
+            # AGENTIC STAGE 1: PLANNER - Analyze the query and create a research plan
+            logger.info("🧠 AGENTIC STAGE 1: PLANNER")
+            planner_response, planner_debug = AlphaGenerator.agentic_planner(query)
+            analysis_debug['planner'] = planner_debug
             
-            if not crypto_data:
-                logger.warning("⚠️ Gemini returned no crypto data, using fallback")
-                crypto_data = AlphaGenerator.get_fallback_crypto_data()
+            # AGENTIC STAGE 2: GENERATOR - Execute the plan and gather data
+            logger.info("🔍 AGENTIC STAGE 2: GENERATOR")  
+            generator_response, generator_debug = AlphaGenerator.agentic_generator(query, planner_response)
+            analysis_debug['generator'] = generator_debug
             
-            # STAGE 2: Data Validation  
-            logger.info("✅ STAGE 2: Validating crypto data")
-            validated_data = AlphaGenerator.validate_crypto_data(crypto_data)
-            analysis_debug['validation'] = {
-                'raw_count': len(crypto_data),
-                'validated_count': len(validated_data)
-            }
-            
-            if not validated_data:
-                logger.error("❌ No valid crypto data available")
-                return ("Unable to find valid cryptocurrency data. Please try again.", analysis_debug)
-            
-            # STAGE 3: o4-mini Analysis with Verified Data
-            logger.info("🧠 STAGE 3: o4-mini analysis with verified data")
-            trade_signals = AlphaGenerator.o4_mini_generate_signals(query, validated_data)
+            # AGENTIC STAGE 3: CRITIC - Review and refine the analysis
+            logger.info("✨ AGENTIC STAGE 3: CRITIC")
+            final_analysis, critic_debug = AlphaGenerator.agentic_critic(query, planner_response, generator_response)
+            analysis_debug['critic'] = critic_debug
             
             analysis_debug['stages_completed'] = 3
-            analysis_debug['final_tokens'] = len(validated_data)
+            analysis_debug['workflow_type'] = 'planner_generator_critic'
             
-            logger.info(f"🎯 Production analysis complete: {len(trade_signals)} characters")
-            return (trade_signals, analysis_debug)
+            logger.info(f"🎯 Agentic workflow complete: {len(final_analysis)} characters")
+            return (final_analysis, analysis_debug)
             
         except Exception as e:
-            logger.error(f"❌ Production analysis failed: {e}")
+            logger.error(f"❌ Agentic workflow failed: {e}")
             analysis_debug['error'] = str(e)
             return (f"Analysis temporarily unavailable: {str(e)}", analysis_debug)
     
@@ -1286,6 +1277,173 @@ RULES:
         
         return analysis_result + verification_footer
 
+    @staticmethod
+    def agentic_planner(query: str) -> tuple[str, Dict[str, Any]]:
+        """AGENTIC STAGE 1: Planner - Create research plan for the query"""
+        logger.info("🧠 Planner Agent: Creating research plan...")
+        
+        planner_prompt = f"""
+You are the PLANNER agent in a multi-agent crypto analysis system.
+
+Your role: Analyze the user's query and create a structured research plan.
+
+USER QUERY: {query}
+
+Create a detailed research plan with these sections:
+1. **Query Analysis**: What exactly is the user asking for?
+2. **Data Requirements**: What crypto data do we need?
+3. **Research Strategy**: How should we approach this analysis?
+4. **Success Metrics**: What would make this analysis valuable?
+
+Keep the plan concise but comprehensive. This will guide the Generator agent.
+
+OUTPUT FORMAT:
+## 📋 RESEARCH PLAN
+
+### Query Analysis
+[Your analysis here]
+
+### Data Requirements  
+[What data we need]
+
+### Research Strategy
+[How to approach this]
+
+### Success Metrics
+[What makes this valuable]
+"""
+        
+        planner_result, planner_debug = AlphaGenerator.generate_content(planner_prompt)
+        planner_debug['agent_type'] = 'planner'
+        planner_debug['stage'] = 1
+        
+        logger.info("✅ Planner Agent: Research plan created")
+        return (planner_result, planner_debug)
+
+    @staticmethod  
+    def agentic_generator(query: str, planner_output: str) -> tuple[str, Dict[str, Any]]:
+        """AGENTIC STAGE 2: Generator - Execute research plan and gather data"""
+        logger.info("🔍 Generator Agent: Executing research plan...")
+        
+        # Get some real crypto data for the generator to work with
+        try:
+            trending_coins = CoinGeckoAPI.get_trending_coins(limit=5)
+            crypto_data = []
+            for coin_id in trending_coins[:3]:
+                data = CoinGeckoAPI.get_coin_data(coin_id)
+                if data:
+                    crypto_data.append(data)
+        except Exception as e:
+            logger.warning(f"⚠️ Generator: Could not fetch live data, using fallback: {e}")
+            crypto_data = []
+        
+        generator_prompt = f"""
+You are the GENERATOR agent in a multi-agent crypto analysis system.
+
+Your role: Execute the research plan and generate detailed crypto analysis.
+
+ORIGINAL USER QUERY: {query}
+
+PLANNER'S RESEARCH PLAN:
+{planner_output}
+
+LIVE MARKET DATA:
+{json.dumps(crypto_data, indent=2) if crypto_data else "No live data available - proceed with general analysis"}
+
+Your task: Following the planner's strategy, generate a comprehensive crypto analysis that addresses the user's query.
+
+Include:
+- Market insights based on available data
+- Relevant trends and patterns  
+- Actionable information
+- Data-driven conclusions
+
+OUTPUT FORMAT:
+## 🔍 DETAILED ANALYSIS
+
+### Market Overview
+[Current market context]
+
+### Key Findings
+[Your main discoveries]
+
+### Technical Insights
+[Technical analysis points]
+
+### Actionable Intelligence
+[What users can act on]
+
+Focus on quality and relevance. This will be reviewed by the Critic agent.
+"""
+        
+        generator_result, generator_debug = AlphaGenerator.generate_content(generator_prompt)
+        generator_debug['agent_type'] = 'generator'  
+        generator_debug['stage'] = 2
+        generator_debug['data_sources'] = len(crypto_data)
+        
+        logger.info("✅ Generator Agent: Analysis generated")
+        return (generator_result, generator_debug)
+
+    @staticmethod
+    def agentic_critic(query: str, planner_output: str, generator_output: str) -> tuple[str, Dict[str, Any]]:
+        """AGENTIC STAGE 3: Critic - Review and refine the analysis"""
+        logger.info("✨ Critic Agent: Reviewing and refining analysis...")
+        
+        critic_prompt = f"""
+You are the CRITIC agent in a multi-agent crypto analysis system.
+
+Your role: Review the Generator's work and create the final, polished analysis.
+
+ORIGINAL USER QUERY: {query}
+
+PLANNER'S RESEARCH PLAN:
+{planner_output}
+
+GENERATOR'S ANALYSIS:
+{generator_output}
+
+Your task: 
+1. Review the Generator's work for quality and relevance
+2. Identify any gaps or areas for improvement  
+3. Create the final, polished analysis
+4. Ensure it directly answers the user's query
+5. Add any missing insights or context
+
+OUTPUT THE FINAL ANALYSIS in this format:
+
+## 🎯 ALPHA INSIGHTS
+
+### Executive Summary
+[2-3 sentences summarizing key points]
+
+### Market Analysis  
+[Refined market insights]
+
+### Trading Signals
+[If applicable - entry/exit points]
+
+### Risk Assessment
+[Key risks to consider]
+
+### Action Items
+[Concrete next steps]
+
+### Agent Workflow Summary
+Planner: [1 sentence on planning]
+Generator: [1 sentence on research] 
+Critic: [1 sentence on refinement]
+
+Make this the best possible analysis that directly serves the user's needs.
+"""
+        
+        critic_result, critic_debug = AlphaGenerator.generate_content(critic_prompt)
+        critic_debug['agent_type'] = 'critic'
+        critic_debug['stage'] = 3
+        critic_debug['final_analysis'] = True
+        
+        logger.info("✅ Critic Agent: Final analysis complete")
+        return (critic_result, critic_debug)
+
 @app.route('/')
 def index():
     """Main dashboard"""
@@ -1438,6 +1596,141 @@ Powered by AI & Real-time Data
     except Exception as e:
         logger.error(f"❌ Error in share_to_whop: {e}")
         return jsonify({'error': 'Internal server error'}), 500
+
+@app.route('/api/marketplace/list', methods=['POST'])
+def create_marketplace_listing():
+    """Create a marketplace listing - simple database storage"""
+    try:
+        data = request.get_json()
+        content = data.get('content', '').strip()
+        title = data.get('title', 'Alpha Analysis').strip()
+        
+        logger.info(f"📋 Creating marketplace listing: '{title}'")
+        
+        if not content:
+            return jsonify({'error': 'Content is required'}), 400
+        
+        # Generate unique listing ID
+        listing_id = f"alpha_{int(datetime.now(timezone.utc).timestamp())}_{abs(hash(content)) % 10000}"
+        
+        # Create listing object
+        listing = {
+            'id': listing_id,
+            'title': title,
+            'content': content,
+            'created_at': datetime.now(timezone.utc).isoformat(),
+            'views': 0,
+            'creator': 'Sovereign Agent #001',
+            'tags': ['alpha', 'crypto', 'ai-generated']
+        }
+        
+        # Save to simple JSON file database
+        marketplace_file = 'marketplace_listings.json'
+        try:
+            with open(marketplace_file, 'r') as f:
+                listings = json.load(f)
+        except (FileNotFoundError, json.JSONDecodeError):
+            listings = []
+        
+        listings.append(listing)
+        
+        # Keep only last 100 listings for demo
+        if len(listings) > 100:
+            listings = listings[-100:]
+            
+        with open(marketplace_file, 'w') as f:
+            json.dump(listings, f, indent=2)
+        
+        # Public URL for the listing
+        public_url = f"/marketplace/{listing_id}"
+        
+        logger.info(f"✅ Created marketplace listing: {listing_id}")
+        return jsonify({
+            'success': True,
+            'listing_id': listing_id,
+            'public_url': public_url,
+            'message': 'Listed on marketplace successfully!'
+        })
+        
+    except Exception as e:
+        logger.error(f"❌ Error creating marketplace listing: {e}")
+        return jsonify({'error': 'Failed to create listing'}), 500
+
+@app.route('/api/marketplace/listings')
+def get_marketplace_listings():
+    """Get all marketplace listings"""
+    try:
+        marketplace_file = 'marketplace_listings.json'
+        try:
+            with open(marketplace_file, 'r') as f:
+                listings = json.load(f)
+        except (FileNotFoundError, json.JSONDecodeError):
+            listings = []
+        
+        # Sort by created_at desc
+        listings.sort(key=lambda x: x.get('created_at', ''), reverse=True)
+        
+        return jsonify({
+            'success': True,
+            'listings': listings[:20],  # Return latest 20
+            'total': len(listings)
+        })
+        
+    except Exception as e:
+        logger.error(f"❌ Error fetching marketplace listings: {e}")
+        return jsonify({'error': 'Failed to fetch listings'}), 500
+
+@app.route('/marketplace/<listing_id>')
+def view_marketplace_listing(listing_id):
+    """View a specific marketplace listing - public page"""
+    try:
+        marketplace_file = 'marketplace_listings.json'
+        try:
+            with open(marketplace_file, 'r') as f:
+                listings = json.load(f)
+        except (FileNotFoundError, json.JSONDecodeError):
+            return render_template('404.html'), 404
+        
+        # Find the listing
+        listing = None
+        for item in listings:
+            if item['id'] == listing_id:
+                listing = item
+                break
+        
+        if not listing:
+            return render_template('404.html'), 404
+        
+        # Increment view count
+        listing['views'] += 1
+        with open(marketplace_file, 'w') as f:
+            json.dump(listings, f, indent=2)
+        
+        return render_template('marketplace_listing.html', listing=listing)
+        
+    except Exception as e:
+        logger.error(f"❌ Error viewing marketplace listing: {e}")
+        return render_template('404.html'), 404
+
+@app.route('/marketplace')
+def marketplace_index():
+    """Marketplace homepage"""
+    try:
+        marketplace_file = 'marketplace_listings.json'
+        try:
+            with open(marketplace_file, 'r') as f:
+                listings = json.load(f)
+        except (FileNotFoundError, json.JSONDecodeError):
+            listings = []
+        
+        # Sort by created_at desc
+        listings.sort(key=lambda x: x.get('created_at', ''), reverse=True)
+        
+        return render_template('marketplace.html', listings=listings[:20])
+        
+    except Exception as e:
+        logger.error(f"❌ Error loading marketplace: {e}")
+        return render_template('marketplace.html', listings=[])
 
 @app.route('/health')
 def health_check():

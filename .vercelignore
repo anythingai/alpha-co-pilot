@@ -50,6 +50,9 @@ logs/
 *.tmp
 *.temp
 
+# Runtime database files (created dynamically)
+marketplace_listings.json
+
 # Large files
 *.zip
 *.tar.gz
