@@ -1,22 +1,8 @@
 {
-  "version": 2,
-  "name": "alpha-co-pilot",
-  "builds": [
+  "rewrites": [
     {
-      "src": "Dockerfile",
-      "use": "@vercel/docker"
+      "source": "/(.*)",
+      "destination": "/api/index"
     }
-  ],
-  "routes": [
-    {
-      "src": "/(.*)",
-      "dest": "/"
-    }
-  ],
-  "env": {
-    "PORT": "5000",
-    "PYTHONPATH": "/app",
-    "FLASK_ENV": "production"
-  },
-  "regions": ["iad1"]
+  ]
 }

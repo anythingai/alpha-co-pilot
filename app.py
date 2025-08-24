@@ -1472,4 +1472,5 @@ if __name__ == '__main__':
     logger.info("  - Reasoning Effort: medium")
     logger.info("🔍 Debug mode: ENABLED - All responses will be logged to console")
     
+    # Only run the development server when executed directly (not when imported by Vercel)
     app.run(debug=True, host='0.0.0.0', port=5000)
