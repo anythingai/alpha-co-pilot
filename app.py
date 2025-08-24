@@ -8,7 +8,7 @@ from typing import Optional, Any, List, Dict, cast
 import requests
 from dotenv import load_dotenv  # type: ignore[import]
 from pytrends.request import TrendReq  # type: ignore[import]
-from flask import Flask, request, jsonify, render_template  # type: ignore[import]
+from flask import Flask, request, jsonify, render_template, redirect  # type: ignore[import]
 from flask_cors import CORS  # type: ignore[import]
 from langchain_openai import AzureChatOpenAI  # type: ignore[import]
 from langchain_core.messages import HumanMessage, SystemMessage  # type: ignore[import]
@@ -1717,8 +1717,38 @@ Make this the best possible analysis that directly serves the user's needs.
 
 @app.route('/')
 def index():
-    """Main dashboard"""
-    logger.info("🏠 Serving dashboard page")
+    """Sovereign Agent #001: Command Hub - Main landing page"""
+    try:
+        logger.info("🏠 Loading Sovereign Agent #001: Command Hub homepage")
+        marketplace_file = 'marketplace_listings.json'
+        try:
+            with open(marketplace_file, 'r') as f:
+                listings = json.load(f)
+            logger.info(f"📋 Loaded {len(listings)} listings for marketplace")
+        except FileNotFoundError:
+            logger.error(f"❌ Marketplace file not found: {marketplace_file}")
+            listings = []
+        except json.JSONDecodeError as e:
+            logger.error(f"❌ JSON decode error in marketplace: {e}")
+            listings = []
+        
+        # Sort by created_at desc
+        listings.sort(key=lambda x: x.get('created_at', ''), reverse=True)
+        
+        # Debug: Log listing IDs being sent to template
+        listing_ids = [item.get('id') for item in listings[:20]]
+        logger.info(f"📝 Marketplace displaying listings: {listing_ids}")
+        
+        return render_template('marketplace.html', listings=listings[:20])
+        
+    except Exception as e:
+        logger.error(f"❌ Error loading marketplace: {e}")
+        return render_template('marketplace.html', listings=[])
+
+@app.route('/dashboard')
+def dashboard():
+    """Alpha Co-Pilot dashboard"""
+    logger.info("🤖 Serving Alpha Co-Pilot dashboard page")
     return render_template('dashboard.html')
 
 @app.route('/api/generate', methods=['POST'])
@@ -2001,34 +2031,10 @@ def view_marketplace_listing(listing_id):
         return render_template('404.html'), 404
 
 @app.route('/marketplace')
-def marketplace_index():
-    """Marketplace homepage"""
-    try:
-        logger.info("🏪 Loading marketplace homepage")
-        marketplace_file = 'marketplace_listings.json'
-        try:
-            with open(marketplace_file, 'r') as f:
-                listings = json.load(f)
-            logger.info(f"📋 Loaded {len(listings)} listings for marketplace")
-        except FileNotFoundError:
-            logger.error(f"❌ Marketplace file not found: {marketplace_file}")
-            listings = []
-        except json.JSONDecodeError as e:
-            logger.error(f"❌ JSON decode error in marketplace: {e}")
-            listings = []
-        
-        # Sort by created_at desc
-        listings.sort(key=lambda x: x.get('created_at', ''), reverse=True)
-        
-        # Debug: Log listing IDs being sent to template
-        listing_ids = [item.get('id') for item in listings[:20]]
-        logger.info(f"📝 Marketplace displaying listings: {listing_ids}")
-        
-        return render_template('marketplace.html', listings=listings[:20])
-        
-    except Exception as e:
-        logger.error(f"❌ Error loading marketplace: {e}")
-        return render_template('marketplace.html', listings=[])
+def marketplace_redirect():
+    """Redirect old marketplace URL to new landing page"""
+    logger.info("🔄 Redirecting /marketplace to / (new landing page)")
+    return redirect('/')
 
 @app.route('/marketplace/test')
 def marketplace_test():
