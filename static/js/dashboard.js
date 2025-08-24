@@ -260,29 +260,42 @@ async function lockOnChain() {
                 to: CONTRACT_ADDRESS,
                 data: encodedData
             });
-            console.log('⛽ Gas estimate:', gasEstimate);
+            console.log('⛽ Gas estimate (raw):', gasEstimate);
+            console.log('⛽ Gas estimate type:', typeof gasEstimate);
         } catch (gasError) {
             console.error('❌ Gas estimation failed:', gasError);
-            gasEstimate = 100000; // Fallback
+            gasEstimate = BigInt(100000); // Fallback as BigInt
         }
         
         // Get current gas price
         let gasPrice;
         try {
             gasPrice = await web3.eth.getGasPrice();
-            console.log('💰 Current gas price:', gasPrice);
+            console.log('💰 Current gas price (raw):', gasPrice);
+            console.log('💰 Gas price type:', typeof gasPrice);
         } catch (gasPriceError) {
             console.error('❌ Gas price fetch failed:', gasPriceError);
-            gasPrice = web3.utils.toWei('30', 'gwei'); // Fallback
+            gasPrice = BigInt(web3.utils.toWei('30', 'gwei')); // Fallback as BigInt
         }
         
-        // Prepare transaction with dynamic gas
+        // Convert BigInt values to regular numbers for calculations
+        const gasEstimateNum = Number(gasEstimate);
+        const gasPriceNum = Number(gasPrice);
+        
+        console.log('⛽ Gas estimate (converted):', gasEstimateNum);
+        console.log('💰 Gas price (converted):', gasPriceNum);
+        
+        // Calculate gas with 20% buffer
+        const gasWithBuffer = Math.floor(gasEstimateNum * 1.2);
+        console.log('⛽ Gas with 20% buffer:', gasWithBuffer);
+        
+        // Prepare transaction with converted values
         const transactionParameters = {
             to: CONTRACT_ADDRESS,
             from: userAccount,
             data: encodedData,
-            gas: web3.utils.toHex(Math.floor(gasEstimate * 1.2)), // Add 20% buffer
-            gasPrice: web3.utils.toHex(gasPrice)
+            gas: '0x' + gasWithBuffer.toString(16), // Convert to hex manually
+            gasPrice: '0x' + gasPriceNum.toString(16) // Convert to hex manually
         };
         
         console.log('📋 Transaction params:', transactionParameters);
