@@ -8,13 +8,17 @@ __pycache__/
 *.egg-info/
 .pytest_cache/
 
-# Node.js / Hardhat
+# Node.js / Hardhat (Not needed for Vercel serverless)
 node_modules/
 artifacts/
 cache/
 .hardhat/
 typechain/
 typechain-types/
+contracts/
+hardhat.config.js
+package.json
+package-lock.json
 
 # Environment and config
 .env
@@ -55,12 +59,13 @@ logs/
 .git/
 .gitignore
 
-# Documentation (optional)
+# Documentation (only keep essential)
 *.md
-!README.md
+!README.MD
 
-# Contract deployment artifacts (keep only essentials)
-contracts/deploy.js
-hardhat.config.js
-package.json
-package-lock.json
+# Build files not needed for Flask app
+Dockerfile
+docker-compose.yml
+ONCHAIN_DEPLOYMENT.md
+alpha_prd.md
+DEPLOYMENT.md
