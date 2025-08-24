@@ -28,27 +28,55 @@
                         'card-foreground': '#fafafa',
                         popover: '#09090b',
                         'popover-foreground': '#fafafa',
-                        primary: '#3b82f6',
-                        'primary-foreground': '#f8fafc',
-                        secondary: '#1e293b',
-                        'secondary-foreground': '#f1f5f9',
-                        muted: '#1e293b',
-                        'muted-foreground': '#94a3b8',
-                        accent: '#1e293b',
-                        'accent-foreground': '#f1f5f9',
+                        primary: '#fafafa',
+                        'primary-foreground': '#09090b',
+                        secondary: '#27272a',
+                        'secondary-foreground': '#fafafa',
+                        muted: '#27272a',
+                        'muted-foreground': '#a1a1aa',
+                        accent: '#27272a',
+                        'accent-foreground': '#fafafa',
                         destructive: '#dc2626',
-                        'destructive-foreground': '#fef2f2',
+                        'destructive-foreground': '#fafafa',
                         border: '#27272a',
                         input: '#27272a',
-                        ring: '#3b82f6',
+                        ring: '#d4d4d8'
                     },
                     fontFamily: {
-                        sans: ['Inter', 'system-ui', 'sans-serif'],
-                    },
+                        sans: ['Inter', 'system-ui', 'sans-serif']
+                    }
                 }
             }
         }
     </script>
+    <style>
+        .shadcn-bg {
+            background: linear-gradient(135deg, #18181b 0%, #09090b 100%);
+        }
+        .fade-in {
+            animation: fadeIn 0.6s ease-out;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .card-hover {
+            transition: all 0.3s ease;
+        }
+        .card-hover:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.6);
+        }
+        .button-primary {
+            background: linear-gradient(135deg, #fafafa 0%, #e4e4e7 100%);
+            transition: all 0.2s ease;
+        }
+        .button-primary:hover {
+            background: linear-gradient(135deg, #e4e4e7 0%, #d4d4d8 100%);
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.8);
+        }
+    </style>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
 </head>
 <body class="bg-background text-foreground font-sans antialiased">
@@ -75,7 +103,7 @@
 
                     <!-- Navigation -->
                     <div class="flex items-center space-x-4">
-                        <a href="/" class="inline-flex items-center justify-center px-4 py-2 bg-gradient-to-r from-blue-500 to-purple-500 text-white font-medium rounded-lg hover:from-blue-600 hover:to-purple-600 transition-all duration-200 text-sm">
+                        <a href="/" class="button-primary inline-flex items-center justify-center px-4 py-2 text-primary-foreground font-medium rounded-lg text-sm">
                             <i class="fas fa-arrow-left mr-2"></i>
                             <span class="hidden sm:inline">Back to Command Hub</span>
                             <span class="sm:hidden">Dashboard</span>
@@ -102,15 +130,15 @@
 
             <!-- Stats Cards -->
             <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
-                <div class="bg-card border border-border rounded-xl p-6 text-center shadow-sm">
-                    <div class="text-3xl font-bold text-primary mb-2">{{ listings|length }}</div>
+                <div class="bg-card border border-border rounded-xl p-6 text-center card-hover">
+                    <div class="text-3xl font-bold text-foreground mb-2">{{ listings|length }}</div>
                     <div class="text-muted-foreground">Total Analyses</div>
                 </div>
-                <div class="bg-card border border-border rounded-xl p-6 text-center shadow-sm">
+                <div class="bg-card border border-border rounded-xl p-6 text-center card-hover">
                     <div class="text-3xl font-bold text-green-500 mb-2">100%</div>
                     <div class="text-muted-foreground">AI Generated</div>
                 </div>
-                <div class="bg-card border border-border rounded-xl p-6 text-center shadow-sm">
+                <div class="bg-card border border-border rounded-xl p-6 text-center card-hover">
                     <div class="text-3xl font-bold text-purple-500 mb-2">24/7</div>
                     <div class="text-muted-foreground">Market Coverage</div>
                 </div>
@@ -120,7 +148,7 @@
             {% if listings %}
             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {% for listing in listings %}
-                <div class="bg-card border border-border rounded-xl overflow-hidden shadow-sm hover:shadow-md hover:border-primary/50 transition-all duration-200">
+                <div class="bg-card border border-border rounded-xl overflow-hidden card-hover">
                     <div class="p-6">
                         <!-- Header -->
                         <div class="flex items-start justify-between mb-4">
@@ -159,7 +187,7 @@
                                 <i class="fas fa-robot mr-1"></i>{{ listing.creator }}
                             </div>
                             <a href="/marketplace/{{ listing.id }}" 
-                               class="bg-primary hover:bg-primary/90 text-primary-foreground px-4 py-2 rounded-lg text-sm font-medium transition-colors">
+                               class="button-primary inline-flex items-center justify-center px-4 py-2 text-primary-foreground text-sm font-medium rounded-lg">
                                 View Analysis
                             </a>
                         </div>
@@ -175,7 +203,7 @@
                 </div>
                 <h3 class="text-2xl font-bold text-foreground mb-4">No Alpha Available Yet</h3>
                 <p class="text-muted-foreground mb-8">Be the first to generate and list analysis on the marketplace!</p>
-                <a href="/" class="bg-primary hover:bg-primary/90 text-primary-foreground px-6 py-3 rounded-lg font-medium transition-colors">
+                <a href="/" class="button-primary inline-flex items-center justify-center px-6 py-3 text-primary-foreground font-medium rounded-lg">
                     <i class="fas fa-plus mr-2"></i>Generate Alpha
                 </a>
             </div>

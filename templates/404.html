@@ -28,27 +28,48 @@
                         'card-foreground': '#fafafa',
                         popover: '#09090b',
                         'popover-foreground': '#fafafa',
-                        primary: '#3b82f6',
-                        'primary-foreground': '#f8fafc',
-                        secondary: '#1e293b',
-                        'secondary-foreground': '#f1f5f9',
-                        muted: '#1e293b',
-                        'muted-foreground': '#94a3b8',
-                        accent: '#1e293b',
-                        'accent-foreground': '#f1f5f9',
+                        primary: '#fafafa',
+                        'primary-foreground': '#09090b',
+                        secondary: '#27272a',
+                        'secondary-foreground': '#fafafa',
+                        muted: '#27272a',
+                        'muted-foreground': '#a1a1aa',
+                        accent: '#27272a',
+                        'accent-foreground': '#fafafa',
                         destructive: '#dc2626',
-                        'destructive-foreground': '#fef2f2',
+                        'destructive-foreground': '#fafafa',
                         border: '#27272a',
                         input: '#27272a',
-                        ring: '#3b82f6',
+                        ring: '#d4d4d8'
                     },
                     fontFamily: {
-                        sans: ['Inter', 'system-ui', 'sans-serif'],
-                    },
+                        sans: ['Inter', 'system-ui', 'sans-serif']
+                    }
                 }
             }
         }
     </script>
+    <style>
+        .shadcn-bg {
+            background: linear-gradient(135deg, #18181b 0%, #09090b 100%);
+        }
+        .fade-in {
+            animation: fadeIn 0.6s ease-out;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .button-primary {
+            background: linear-gradient(135deg, #fafafa 0%, #e4e4e7 100%);
+            transition: all 0.2s ease;
+        }
+        .button-primary:hover {
+            background: linear-gradient(135deg, #e4e4e7 0%, #d4d4d8 100%);
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.8);
+        }
+    </style>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
 </head>
 <body class="bg-background text-foreground font-sans antialiased min-h-screen flex items-center justify-center">
@@ -68,11 +89,11 @@
         <!-- Navigation Options -->
         <div class="space-y-4">
             <a href="/marketplace" 
-               class="block w-full bg-primary hover:bg-primary/90 text-primary-foreground px-6 py-3 rounded-lg font-medium transition-colors">
+               class="button-primary block w-full text-primary-foreground px-6 py-3 rounded-lg font-medium text-center">
                 <i class="fas fa-list mr-2"></i>Browse Marketplace
             </a>
             <a href="/" 
-               class="block w-full bg-muted hover:bg-muted/80 text-muted-foreground px-6 py-3 rounded-lg font-medium transition-colors">
+               class="block w-full bg-muted hover:bg-muted/80 text-muted-foreground px-6 py-3 rounded-lg font-medium transition-colors text-center">
                 <i class="fas fa-home mr-2"></i>Back to Command Hub
             </a>
         </div>
