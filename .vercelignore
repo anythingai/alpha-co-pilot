@@ -1,0 +1,66 @@
+# Python
+venv/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+*.egg-info/
+.pytest_cache/
+
+# Node.js / Hardhat
+node_modules/
+artifacts/
+cache/
+.hardhat/
+typechain/
+typechain-types/
+
+# Environment and config
+.env
+.env.local
+.env.production
+.env.staging
+
+# IDE and editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Logs
+*.log
+logs/
+
+# Temporary files
+*.tmp
+*.temp
+
+# Large files
+*.zip
+*.tar.gz
+*.rar
+
+# Git
+.git/
+.gitignore
+
+# Documentation (optional)
+*.md
+!README.md
+
+# Contract deployment artifacts (keep only essentials)
+contracts/deploy.js
+hardhat.config.js
+package.json
+package-lock.json
