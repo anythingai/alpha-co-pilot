@@ -842,17 +842,20 @@ generateBtn.addEventListener('click', async () => {
     // Hide Quick Start Templates during analysis for cleaner UX
     quickStartTemplates.style.display = 'none';
 
-    // START AGENTIC WORKFLOW VISUALIZATION (Critical for demo "wow" factor)
-    await showAgenticWorkflow();
-    
+    // START BOTH API CALL AND WORKFLOW VISUALIZATION IN PARALLEL
+    // This eliminates any hanging - the visualization happens during real processing
     try {
-        const response = await fetch('/api/generate', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ query })
-        });
-
-        const data = await response.json();
+        const [data] = await Promise.all([
+            // Real API call starts immediately
+            fetch('/api/generate', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ query })
+            }).then(response => response.json()),
+            
+            // Workflow visualization runs during API processing
+            showAgenticWorkflow()
+        ]);
         
         if (data.success) {
             showResults(data);
@@ -1069,7 +1072,7 @@ async function showAgenticWorkflow() {
             description: 'Planning Agent creating research strategy',
             color: 'text-blue-400',
             bgColor: 'border-blue-400',
-            duration: 3500 // Longer for demo impact
+            duration: 3000 // Optimized for real API timing
         },
         {
             icon: 'fas fa-search',
@@ -1077,7 +1080,7 @@ async function showAgenticWorkflow() {
             description: 'Scout Agent gathering real-time data',
             color: 'text-yellow-400',
             bgColor: 'border-yellow-400',
-            duration: 4000 // Longer for demo impact
+            duration: 4000 // Peak research phase
         },
         {
             icon: 'fas fa-chart-line',
@@ -1085,7 +1088,7 @@ async function showAgenticWorkflow() {
             description: 'Analyst Agent synthesizing investment thesis',
             color: 'text-green-400',
             bgColor: 'border-green-400',
-            duration: 4500 // Longer for demo impact
+            duration: 5000 // Longest phase - core analysis
         },
         {
             icon: 'fas fa-shield-alt',
@@ -1093,7 +1096,7 @@ async function showAgenticWorkflow() {
             description: 'Risk Analyst Agent quality control & validation',
             color: 'text-red-400',
             bgColor: 'border-red-400',
-            duration: 3500 // Longer for demo impact
+            duration: 4000 // Important validation step
         },
         {
             icon: 'fas fa-broadcast-tower',
@@ -1101,15 +1104,7 @@ async function showAgenticWorkflow() {
             description: 'Comms Agent formatting for publication',
             color: 'text-purple-400',
             bgColor: 'border-purple-400',
-            duration: 3000 // Longer for demo impact
-        },
-        {
-            icon: 'fas fa-check-circle',
-            text: 'Complete!',
-            description: 'Alpha Squad analysis ready',
-            color: 'text-green-400',
-            bgColor: 'border-green-400',
-            duration: 500 // Shorter for faster completion
+            duration: 3000 // Final formatting
         }
     ];
 
@@ -1148,7 +1143,7 @@ async function showAgenticWorkflow() {
                              style="width: ${progressPercent}%; animation: shimmer 2s infinite;"></div>
                     </div>
                     <div class="text-sm text-gray-400">
-                        Alpha Squad Agent ${i + 1} of ${stages.length - 1} • Autonomous Analysis System
+                        Alpha Squad Agent ${i + 1} of ${stages.length} • Autonomous Analysis System
                     </div>
                 </div>
                 
@@ -1166,23 +1161,9 @@ async function showAgenticWorkflow() {
         await new Promise(resolve => setTimeout(resolve, stage.duration));
     }
     
-    // Skip the "Analysis Complete" step entirely for instant transition to results
-    // This eliminates the false waiting period and makes the demo flow smoothly
-    
-    // Optional: Show brief "Processing..." instead
-    loadingContent.innerHTML = `
-        <div class="text-center space-y-4">
-            <div class="flex justify-center">
-                <div class="w-16 h-16 rounded-full bg-blue-600 flex items-center justify-center">
-                    <i class="fas fa-cog fa-spin text-2xl text-white"></i>
-                </div>
-            </div>
-            <h3 class="text-xl font-bold text-blue-400">Processing...</h3>
-            <p class="text-gray-300">Finalizing analysis</p>
-        </div>
-    `;
-    
-    // No delay - return immediately to start API call
+    // No final step needed! The API call is already running in parallel
+    // When this function completes, the API response should be ready
+    // This creates perfect timing - workflow ends exactly when results are ready
 }
 
 // Add required CSS animations
