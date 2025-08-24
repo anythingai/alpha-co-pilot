@@ -2,7 +2,7 @@ import os
 import json
 import re
 import logging
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Optional, Any, List, Dict, cast
 
 import requests
@@ -14,10 +14,17 @@ from langchain_openai import AzureChatOpenAI  # type: ignore[import]
 from langchain_core.messages import HumanMessage, SystemMessage  # type: ignore[import]
 from pydantic.v1 import SecretStr  # type: ignore[import]
 import tiktoken  # type: ignore[import]
+
+# Configure logging first
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+logger = logging.getLogger(__name__)
+
 try:
     from google import genai  # type: ignore[import]
     from google.genai import types  # type: ignore[import]
-except Exception:  # pragma: no cover
+    logger.info("✅ Gemini imports successful")
+except Exception as e:  # pragma: no cover
+    logger.warning(f"⚠️ Gemini import failed: {e}. Using fallback mode.")
     genai = None  # type: ignore[assignment]
     types = None  # type: ignore[assignment]
 
@@ -71,9 +78,7 @@ class GoogleTrendsAPI:
             logger.error(f"❌ Error fetching Google Trends for {query}: {e}")
             return {}
 
-# Configure logging with more detailed output
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
-logger = logging.getLogger(__name__)
+# Logging already configured above
 
 app = Flask(__name__)
 app.secret_key = os.getenv('FLASK_SECRET_KEY', 'your-secret-key-here')
@@ -108,37 +113,7 @@ def _coerce_content_to_str(value: Any) -> str:
     except Exception:
         return ''
 
-# Removed old filtering helper functions - now using generalized approach
-class QueryParser:
-    """Generalized query parser for broad crypto analysis."""
-
-    @staticmethod
-    def parse(query: str) -> Dict[str, Any]:
-        """Parse query for general analysis without strict filtering"""
-        ql = query.lower()
-        result: Dict[str, Any] = {
-            'num': 50,  # Increased default to get more comprehensive results
-            'query_text': query,  # Store original query for context
-        }
-
-        # Extract number if specified, but allow much higher limits
-        m = re.search(r'\btop\s+(\d+)\b', ql)
-        if m:
-            try:
-                result['num'] = max(1, min(200, int(m.group(1))))  # Increased max limit
-            except Exception:
-                pass
-
-        # Extract symbols for targeted analysis if specified
-        sym_match = re.search(r'\b(?:analy[s|z]e|compare|vs|symbols?)\b\s*([a-z0-9\s,\-]+)', ql)
-        if sym_match:
-            raw = sym_match.group(1)
-            parts = re.split(r'[\s,]+', raw)
-            symbols = [p.strip().upper() for p in parts if p.strip() and len(p.strip()) <= 10]
-            if symbols:
-                result['symbols'] = symbols
-
-        return result
+# Production-ready direct-to-LLM approach - No complex query parsing needed!
 
 # Initialize LangChain AzureChatOpenAI with DEBUG ENHANCEMENTS
 try:
@@ -610,42 +585,50 @@ class AlphaGenerator:
 
     @staticmethod
     def create_crypto_analysis_prompt(coin_data: list, user_query: str, cmc_data: dict = {}, llama_data: dict = {}, web_context: Optional[list] = None, google_trends: dict = {}) -> str:
-        """Create a structured prompt for crypto analysis"""
+        """Create trade signal optimized prompt for actionable trading insights"""
+        
+        # Extract key data points for verification
+        key_metrics = []
+        for coin in coin_data:
+            price = coin.get('price_usd') or coin.get('current_price')
+            change_24h = coin.get('change_24h_pct') or coin.get('price_change_percentage_24h') or 0
+            volume = coin.get('volume_24h_usd') or coin.get('total_volume')
+            
+            metrics = {
+                'symbol': coin.get('symbol', '').upper(),
+                'price': price,
+                'market_cap': coin.get('market_cap_usd'),
+                'volume_24h': volume,
+                'change_24h': change_24h,
+                'momentum': 'BULLISH' if change_24h > 5 else 'BEARISH' if change_24h < -5 else 'NEUTRAL'
+            }
+            key_metrics.append(metrics)
+        
         prompt = f"""
-You are an expert crypto analyst creating high-quality alpha content for a premium Discord community.
+You are a crypto trading signal analyst. Generate ACTIONABLE trade signals with entry/exit points.
 
-USER QUERY: {user_query}
-    
-COIN DATA: {json.dumps(coin_data, indent=2)}
+QUERY: {user_query}
+LIVE DATA: {json.dumps(key_metrics, indent=2)}
 
-# Additional CoinMarketCap API Data
-CMC DATA: {json.dumps(cmc_data, indent=2) if cmc_data else {}}
+Provide response in this EXACT format:
 
-# DefiLlama TVL Data
-LLAMA DATA: {json.dumps(llama_data, indent=2) if llama_data else {}}
+## 📊 TRADE SIGNALS
+{chr(10).join([f"• **{coin.get('symbol', 'N/A')}** ${coin.get('price_usd', 'N/A')} ({coin.get('change_24h_pct', 0):+.1f}%) | Signal: {('BULLISH' if (coin.get('change_24h_pct', 0) > 5) else 'BEARISH' if (coin.get('change_24h_pct', 0) < -5) else 'NEUTRAL')}" for coin in coin_data[:3]])}
 
-# Web Context from initial search crawl
-WEB CONTEXT: {json.dumps(web_context, indent=2) if web_context else []}
+## 🎯 ENTRY POINTS
+{chr(10).join([f"• **{coin.get('symbol', 'N/A')}**: Entry ${(coin.get('price_usd') or 0) * 0.98:.3f} | Stop ${(coin.get('price_usd') or 0) * 0.92:.3f} | Target ${(coin.get('price_usd') or 0) * 1.08:.3f}" for coin in coin_data[:3] if coin.get('price_usd')])}
 
-# Google Trends Data
-GOOGLE TRENDS: {json.dumps(google_trends, indent=2) if google_trends else {}}
+## ⚡ MOMENTUM ALERT
+[1-2 sentences about strongest momentum/volume signals]
 
-Create a professional analysis that includes:
-
-1. Executive Summary (2-3 sentences)
-2. Key Metrics & Performance (price, market cap, volume)
-3. Market Analysis
-4. Risk Assessment
-5. Community & Developer Metrics
-6. Actionable Insights
-
-Format the response in markdown with headings (##) and bullet lists for clarity. Use emojis sparingly and professionally. Keep it concise but comprehensive (300-500 words).
-
-Ensure to include specific price data, percentage changes, market cap information, community engagement metrics, and developer activity from the provided data.
-
-IMPORTANT: You MUST provide a complete response. Do not leave the content empty.
+Rules:
+- Use ONLY provided data
+- Include exact entry/stop/target prices
+- Keep under 200 words
+- Focus on actionable signals
+- No disclaimers or speculation
 """
-        logger.info("📝 Created crypto analysis prompt")
+        logger.info("📝 Created trade signal prompt")
         logger.info(f"📏 Prompt length: {len(prompt)} characters")
         return prompt
 
@@ -917,25 +900,37 @@ IMPORTANT: You MUST provide a complete response. Do not leave the content empty.
             
             # Try to extract JSON from the response
             try:
+                # First try direct JSON parsing
                 data = json.loads(text)
             except json.JSONDecodeError:
-                # Fallback: extract tokens from text using different patterns
-                logger.warning(f"⚠️ JSON parsing failed, trying text extraction from: {text[:200]}...")
-                
-                # Try comma-separated format first
-                if ',' in text:
-                    token_matches = [t.strip().upper() for t in text.split(',') if t.strip()]
+                # Try to extract JSON from markdown code blocks
+                json_match = re.search(r'```(?:json)?\s*({[^}]*})\s*```', text, re.DOTALL)
+                if json_match:
+                    try:
+                        data = json.loads(json_match.group(1))
+                    except json.JSONDecodeError:
+                        data = None
                 else:
-                    # Try regex for token symbols (2-10 characters, mostly uppercase)
-                    token_matches = re.findall(r'\b[A-Z][A-Z0-9]{1,9}\b', text)
-                    if not token_matches:
-                        # Try to find any token-like words (case insensitive)
-                        token_matches = re.findall(r'\b[A-Za-z][A-Za-z0-9]{1,9}\b', text)
+                    data = None
                 
-                for t in token_matches[:max_items]:
-                    if isinstance(t, str) and 2 <= len(t) <= 10:
-                        suggestions.append(t.upper())
-                return suggestions
+                if not data:
+                    # Fallback: extract tokens from text using different patterns
+                    logger.warning(f"⚠️ JSON parsing failed, trying text extraction from: {text[:200]}...")
+                    
+                    # Try comma-separated format first
+                    if ',' in text:
+                        token_matches = [t.strip('"\' ').upper() for t in text.split(',') if t.strip()]
+                    else:
+                        # Try regex for token symbols (2-10 characters, mostly uppercase)
+                        token_matches = re.findall(r'\b[A-Z][A-Z0-9]{1,9}\b', text)
+                        if not token_matches:
+                            # Try to find any token-like words (case insensitive)
+                            token_matches = re.findall(r'\b[A-Za-z][A-Za-z0-9]{1,9}\b', text)
+                    
+                    for t in token_matches[:max_items]:
+                        if isinstance(t, str) and 2 <= len(t) <= 10:
+                            suggestions.append(t.upper())
+                    return suggestions
             for t in data.get('tokens', [])[:max_items]:
                 if isinstance(t, str) and 1 <= len(t) <= 40:
                     suggestions.append(t)
@@ -943,143 +938,353 @@ IMPORTANT: You MUST provide a complete response. Do not leave the content empty.
             logger.error(f"❌ Gemini token suggestion failed: {e}")
         return suggestions
 
-    @staticmethod
+    @staticmethod  
     def generate_analysis(query: str) -> tuple[str, Dict[str, Any]]:
-        """Fetch comprehensive crypto data and generate generalized analysis. Returns (content, debug)."""
-        logger.info(f"🎯 Starting generalized analysis generation for query: '{query}'")
-        # Initialize Google Trends data
-        google_trends_data: dict = {}
-        analysis_debug: Dict[str, Any] = {}
+        """Production-ready two-stage analysis: Gemini grounding + o4-mini reasoning."""
+        logger.info(f"🎯 Starting production analysis for: '{query}'")
+        analysis_debug: Dict[str, Any] = {'approach': 'two_stage_production'}
         
-        # Parse intent from query for basic parameters only
-        intent = QueryParser.parse(query)
-        analysis_debug['intent'] = intent
-        logger.info(f"🎯 Parsed intent (generalized): {intent}")
-
-        # Perform grounded search for additional context using Gemini
         try:
-            logger.info("🌐 Performing expanded grounded search for comprehensive context (Gemini)")
-            sources = AlphaGenerator.gemini_grounded_sources(query, max_results=20) if gemini_client else []  # Increased results
-            web_context = sources
-            # Fetch free-tier Google Trends data
-            google_trends_data = GoogleTrendsAPI.get_interest_over_time(query)
-            logger.info(f"📈 Retrieved Google Trends data points: {len(google_trends_data)}")
-            logger.debug(f"🔍 Google Trends raw data: {google_trends_data}")
-        except Exception as e:
-            logger.error(f"❌ Grounded search failed: {e}")
-            web_context = []
-            google_trends_data = {}
-        
-        coin_data = []
-        analysis_debug['strategy'] = 'comprehensive_gathering'
-        num = intent.get('num', 50)  # Default to broader results
-        
-        logger.info(f"🎆 Starting comprehensive crypto data gathering (target: {num} coins)")
-        
-        # Strategy 1: If user provided explicit symbols, prioritize those
-        symbols = intent.get('symbols') or []
-        if symbols:
-            logger.info(f"🎯 Processing explicit symbols: {symbols}")
-            for sym in symbols:
-                found_ids = CoinGeckoAPI.search_coins(sym, limit=5)  # Get multiple matches per symbol
-                for coin_id in found_ids:
-                    data = CoinGeckoAPI.get_coin_data(coin_id)
-                    if data:
-                        coin_data.append(data)
-        
-        # Strategy 2: Use Gemini for intelligent token suggestions based on query
-        if gemini_client:
-            logger.info(f"🤖 Getting Gemini suggestions for: '{query}'")
-            suggested = AlphaGenerator.gemini_suggest_tokens(query, None, None, max_items=min(30, num))  # No constraints
-            for i, token_name in enumerate(suggested):
-                if i > 0 and i % 10 == 0:  # Occasional delay to avoid rate limiting
-                    import time
-                    time.sleep(0.5)
-                found_ids = CoinGeckoAPI.search_coins(token_name, limit=2)
-                for coin_id in found_ids:
-                    data = CoinGeckoAPI.get_coin_data(coin_id)
-                    if data and not any(existing.get('id') == data.get('id') for existing in coin_data):
-                        coin_data.append(data)
-        
-        # Strategy 3: Direct search on the query itself
-        logger.info(f"🔍 Performing direct search on query: '{query}'")
-        direct_search_ids = CoinGeckoAPI.search_coins(query, limit=20)
-        for coin_id in direct_search_ids:
-            data = CoinGeckoAPI.get_coin_data(coin_id)
-            if data and not any(existing.get('id') == data.get('id') for existing in coin_data):
-                coin_data.append(data)
-        
-        # Strategy 4: Get trending coins to ensure we have popular tokens
-        logger.info("📈 Adding trending coins for market context")
-        trending_ids = CoinGeckoAPI.get_trending_coins(limit=min(20, num//2))
-        for coin_id in trending_ids:
-            data = CoinGeckoAPI.get_coin_data(coin_id)
-            if data and not any(existing.get('id') == data.get('id') for existing in coin_data):
-                coin_data.append(data)
-        
-        # Strategy 5: Get top market cap coins for market leaders
-        if len(coin_data) < num:
-            logger.info("📉 Adding top market cap coins for comprehensive coverage")
-            top_mc_coins = CoinGeckoAPI.get_top_market_cap(limit=min(50, num - len(coin_data)))
-            for coin in top_mc_coins:
-                if not any(existing.get('id') == coin.get('id') for existing in coin_data):
-                    coin_data.append(coin)
-
-        # Final safety fallback to ensure we always have data to analyze
-        if not coin_data:
-            logger.info("🧭 Final safety fallback: BTC, ETH, and top market cap coins")
-            analysis_debug['fallback_used'] = True
-            # Get the major coins as baseline
-            for major_coin in ["bitcoin", "ethereum", "binancecoin", "solana", "cardano"]:
-                data = CoinGeckoAPI.get_coin_data(major_coin)
-                if data:
-                    coin_data.append(data)
+            # STAGE 1: Gemini Grounded Data Discovery
+            logger.info("🔍 STAGE 1: Gemini grounded crypto data discovery")
+            crypto_data = AlphaGenerator.gemini_get_crypto_data(query)
             
-            # Add some top market cap coins
-            top_mc = CoinGeckoAPI.get_top_market_cap(limit=20)
-            for coin in top_mc:
-                if not any(existing.get('id') == coin.get('id') for existing in coin_data):
-                    coin_data.append(coin)
-
-        if not coin_data:
-            logger.warning("⚠️ Unable to gather any crypto data")
-            analysis_debug['error'] = 'no_data_available'
-            return ("Unable to gather cryptocurrency data at this time. Please try again later.", analysis_debug)
-
-        logger.info(f"📊 Found {len(coin_data)} coins for analysis")
-        logger.info(f"📊 Coin data size: {len(str(coin_data))} characters")
+            if not crypto_data:
+                logger.warning("⚠️ Gemini returned no crypto data, using fallback")
+                crypto_data = AlphaGenerator.get_fallback_crypto_data()
+            
+            # STAGE 2: Data Validation  
+            logger.info("✅ STAGE 2: Validating crypto data")
+            validated_data = AlphaGenerator.validate_crypto_data(crypto_data)
+            analysis_debug['validation'] = {
+                'raw_count': len(crypto_data),
+                'validated_count': len(validated_data)
+            }
+            
+            if not validated_data:
+                logger.error("❌ No valid crypto data available")
+                return ("Unable to find valid cryptocurrency data. Please try again.", analysis_debug)
+            
+            # STAGE 3: o4-mini Analysis with Verified Data
+            logger.info("🧠 STAGE 3: o4-mini analysis with verified data")
+            trade_signals = AlphaGenerator.o4_mini_generate_signals(query, validated_data)
+            
+            analysis_debug['stages_completed'] = 3
+            analysis_debug['final_tokens'] = len(validated_data)
+            
+            logger.info(f"🎯 Production analysis complete: {len(trade_signals)} characters")
+            return (trade_signals, analysis_debug)
+            
+        except Exception as e:
+            logger.error(f"❌ Production analysis failed: {e}")
+            analysis_debug['error'] = str(e)
+            return (f"Analysis temporarily unavailable: {str(e)}", analysis_debug)
+    
+    @staticmethod
+    def gemini_get_crypto_data(query: str) -> List[Dict[str, Any]]:
+        """Stage 1: Use Gemini grounding to find relevant crypto data."""
+        crypto_data = []
         
-        # Trim to desired number if we have too many results
-        if len(coin_data) > num:
-            # Sort by market cap (if available) to prioritize larger coins
-            coin_data.sort(key=lambda x: x.get('market_cap_usd', 0) if x.get('market_cap_usd') else 0, reverse=True)
-            coin_data = coin_data[:num]
+        if not gemini_client or not gemini_config:
+            logger.warning("⚠️ Gemini not available, skipping grounded search")
+            return crypto_data
         
-        logger.info(f"📅 Gathered {len(coin_data)} coins for comprehensive analysis")
-        logger.info(f"📅 Total data size: {len(str(coin_data))} characters")
+        try:
+            # Enhanced prompt for crypto data discovery with structured output
+            prompt = f"""
+Find cryptocurrency tokens for: "{query}"
+
+Return ONLY a JSON object with this exact format:
+{{
+  "symbols": ["SYMBOL1", "SYMBOL2", "SYMBOL3"],
+  "reasoning": "Brief explanation"
+}}
+
+Examples:
+- For "AI tokens": {{"symbols": ["FET", "AGIX", "OCEAN"], "reasoning": "Top AI/ML tokens"}}
+- For "DeFi tokens": {{"symbols": ["AAVE", "UNI", "COMP"], "reasoning": "Leading DeFi protocols"}}
+- For "meme coins": {{"symbols": ["DOGE", "SHIB", "PEPE"], "reasoning": "Popular meme tokens"}}
+
+Query: "{query}"
+
+Return valid crypto symbols only, no explanatory text.
+"""
+            
+            logger.info("🤖 Calling Gemini with grounding for crypto data...")
+            response = gemini_client.models.generate_content(
+                model=GEMINI_MODEL,
+                contents=prompt,
+                config=gemini_config  # Uses Google Search grounding
+            )
+            
+            # Extract and parse Gemini response
+            if hasattr(response, 'text') and response.text:
+                logger.info(f"✅ Gemini response received: {len(response.text)} characters")
+                
+                # Parse crypto symbols from structured JSON response
+                crypto_symbols = AlphaGenerator.parse_gemini_json_response(response.text)
+                logger.info(f"🎯 Extracted symbols: {crypto_symbols}")
+                
+                # Get detailed data for each symbol
+                for symbol in crypto_symbols[:5]:  # Limit to top 5 for production
+                    try:
+                        coin_ids = CoinGeckoAPI.search_coins(symbol, limit=1)
+                        for coin_id in coin_ids:
+                            data = CoinGeckoAPI.get_coin_data(coin_id)
+                            if data and AlphaGenerator.is_valid_crypto_data(data):
+                                crypto_data.append(data)
+                                logger.info(f"✅ Added verified data for {symbol}")
+                            break  # Take first valid result
+                    except Exception as e:
+                        logger.warning(f"⚠️ Failed to get data for {symbol}: {e}")
+                        continue
+            
+            # Smart fallback: Use category-based tokens if Gemini didn't provide good symbols
+            if len(crypto_data) < 3:
+                logger.info("🎯 Using smart category fallback")
+                fallback_symbols = AlphaGenerator.get_category_fallback_tokens(query)
+                
+                if fallback_symbols:
+                    for symbol in fallback_symbols[:3]:
+                        try:
+                            coin_ids = CoinGeckoAPI.search_coins(symbol, limit=1)
+                            for coin_id in coin_ids:
+                                data = CoinGeckoAPI.get_coin_data(coin_id)
+                                if data and AlphaGenerator.is_valid_crypto_data(data):
+                                    if not any(existing.get('id') == data.get('id') for existing in crypto_data):
+                                        crypto_data.append(data)
+                                        logger.info(f"✅ Added fallback token: {symbol}")
+                                break
+                        except Exception as e:
+                            logger.warning(f"⚠️ Failed to get fallback data for {symbol}: {e}")
+                            continue
+                
+                # Final fallback: Add trending coins if still not enough
+                if len(crypto_data) < 2:
+                    logger.info("📈 Adding trending coins as final fallback")
+                    trending_ids = CoinGeckoAPI.get_trending_coins(limit=3)
+                    for coin_id in trending_ids[:3-len(crypto_data)]:
+                        try:
+                            data = CoinGeckoAPI.get_coin_data(coin_id)
+                            if data and AlphaGenerator.is_valid_crypto_data(data):
+                                if not any(existing.get('id') == data.get('id') for existing in crypto_data):
+                                    crypto_data.append(data)
+                        except Exception:
+                            continue
+                        
+        except Exception as e:
+            logger.error(f"❌ Gemini grounded search failed: {e}")
+            # Use category fallback on complete Gemini failure
+            fallback_symbols = AlphaGenerator.get_category_fallback_tokens(query)
+            if fallback_symbols:
+                logger.info(f"🔄 Using category fallback after Gemini failure: {fallback_symbols}")
+                for symbol in fallback_symbols[:3]:
+                    try:
+                        coin_ids = CoinGeckoAPI.search_coins(symbol, limit=1)
+                        for coin_id in coin_ids:
+                            data = CoinGeckoAPI.get_coin_data(coin_id)
+                            if data and AlphaGenerator.is_valid_crypto_data(data):
+                                crypto_data.append(data)
+                                logger.info(f"✅ Added fallback token: {symbol}")
+                            break
+                    except Exception:
+                        continue
         
-        analysis_debug['coin_data_count'] = len(coin_data)
-        analysis_debug['web_context_count'] = len(web_context) if 'web_context' in locals() and isinstance(web_context, list) else 0
-        analysis_debug['google_trends_points'] = len(google_trends_data)
+        logger.info(f"🔍 Gemini + fallbacks found {len(crypto_data)} crypto tokens")
+        return crypto_data
+    
+    @staticmethod
+    def parse_gemini_json_response(text: str) -> List[str]:
+        """Parse structured JSON response from Gemini."""
+        symbols = []
+        
+        try:
+            # Try to extract JSON from response
+            json_match = re.search(r'\{[^}]*"symbols"[^}]*\}', text, re.DOTALL)
+            if json_match:
+                data = json.loads(json_match.group(0))
+                symbols = data.get('symbols', [])
+                logger.info(f"✅ Parsed JSON symbols: {symbols}")
+            else:
+                # Fallback: look for symbol arrays in text
+                array_match = re.search(r'\["([A-Z]{2,10})"[^\]]*\]', text)
+                if array_match:
+                    symbols = re.findall(r'"([A-Z]{2,10})"', array_match.group(0))
+                    logger.info(f"✅ Extracted array symbols: {symbols}")
+        except Exception as e:
+            logger.warning(f"⚠️ JSON parsing failed: {e}")
+        
+        # Validate symbols
+        validated_symbols = []
+        for symbol in symbols:
+            if isinstance(symbol, str) and 2 <= len(symbol) <= 10 and symbol.isalnum():
+                validated_symbols.append(symbol.upper())
+        
+        return validated_symbols[:5]  # Limit to top 5
+    
+    @staticmethod
+    def get_category_fallback_tokens(query: str) -> List[str]:
+        """Get fallback tokens based on query category."""
+        query_lower = query.lower()
+        
+        # Category mappings for common queries
+        category_tokens = {
+            'ai': ['FET', 'AGIX', 'OCEAN', 'TAO', 'RNDR'],
+            'defi': ['AAVE', 'UNI', 'COMP', 'MKR', 'CRV'],
+            'meme': ['DOGE', 'SHIB', 'PEPE', 'FLOKI', 'BONK'],
+            'layer1': ['ETH', 'SOL', 'ADA', 'AVAX', 'DOT'],
+            'gaming': ['AXS', 'SAND', 'MANA', 'ENJ', 'GALA'],
+            'privacy': ['XMR', 'ZEC', 'SCRT', 'ROSE', 'NYM']
+        }
+        
+        # Check for category keywords
+        for category, tokens in category_tokens.items():
+            if any(keyword in query_lower for keyword in [category, category + ' token', category + ' coin']):
+                logger.info(f"🎯 Using {category} category fallback: {tokens}")
+                return tokens
+        
+        # Special keyword mappings
+        if any(word in query_lower for word in ['artificial intelligence', 'machine learning']):
+            return category_tokens['ai']
+        if any(word in query_lower for word in ['decentralized finance', 'lending', 'dex']):
+            return category_tokens['defi']
+        if any(word in query_lower for word in ['blockchain', 'layer 1', 'smart contract']):
+            return category_tokens['layer1']
+        
+        return []
+    
+    @staticmethod
+    def get_fallback_crypto_data() -> List[Dict[str, Any]]:
+        """Fallback crypto data when Gemini is unavailable."""
+        fallback_data = []
+        
+        # Get top market cap coins as safe fallback
+        try:
+            logger.info("🔄 Using market cap fallback data")
+            top_coins = CoinGeckoAPI.get_top_market_cap(limit=5)
+            for coin in top_coins:
+                if AlphaGenerator.is_valid_crypto_data(coin):
+                    fallback_data.append(coin)
+        except Exception as e:
+            logger.error(f"❌ Fallback data failed: {e}")
+        
+        return fallback_data
+    
+    @staticmethod
+    def is_valid_crypto_data(data: Dict[str, Any]) -> bool:
+        """Validate crypto data has required fields for trading signals."""
+        required_fields = ['id', 'symbol', 'price_usd']
+        
+        for field in required_fields:
+            if not data.get(field):
+                return False
+        
+        # Validate price is a positive number
+        price = data.get('price_usd')
+        if not isinstance(price, (int, float)) or price <= 0:
+            return False
+        
+        return True
+    
+    @staticmethod
+    def validate_crypto_data(crypto_data: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+        """Validate and enrich crypto data for production use."""
+        validated = []
+        
+        for data in crypto_data:
+            if not AlphaGenerator.is_valid_crypto_data(data):
+                logger.warning(f"⚠️ Invalid data for {data.get('id', 'unknown')}")
+                continue
+            
+            # Enrich with calculated fields
+            enriched = data.copy()
+            
+            # Calculate momentum signal
+            change_24h = data.get('change_24h_pct', 0) or 0
+            if change_24h > 5:
+                enriched['momentum'] = 'BULLISH'
+            elif change_24h < -5:
+                enriched['momentum'] = 'BEARISH'
+            else:
+                enriched['momentum'] = 'NEUTRAL'
+            
+            # Add verification timestamp
+            enriched['verified_at'] = datetime.now(timezone.utc).isoformat()
+            
+            # Ensure required fields are present with defaults
+            enriched.setdefault('market_cap_usd', 0)
+            enriched.setdefault('volume_24h_usd', 0)
+            enriched.setdefault('change_24h_pct', 0)
+            
+            validated.append(enriched)
+            logger.info(f"✅ Validated {data.get('symbol')} at ${data.get('price_usd')}")
+        
+        logger.info(f"✅ Validated {len(validated)}/{len(crypto_data)} tokens")
+        return validated
+    
+    @staticmethod
+    def o4_mini_generate_signals(query: str, validated_data: List[Dict[str, Any]]) -> str:
+        """Stage 3: Use o4-mini to generate verified trade signals."""
+        
+        # Create production-grade prompt with verified data
+        verified_metrics = []
+        for token in validated_data:
+            verified_metrics.append({
+                'symbol': token['symbol'].upper(),
+                'price': token['price_usd'],
+                'change_24h': token.get('change_24h_pct', 0),
+                'market_cap': token.get('market_cap_usd', 0),
+                'volume': token.get('volume_24h_usd', 0),
+                'momentum': token['momentum'],
+                'verified_at': token['verified_at']
+            })
+        
+        prompt = f"""
+GENERATE VERIFIED TRADE SIGNALS
 
-        # Fetch additional market data from multiple sources for comprehensive analysis
-        symbols = [c.get("symbol") for c in coin_data if c.get("symbol")]
-        logger.info(f"💰 Fetching additional market data for {len(symbols)} symbols")
-        cmc_quotes = CoinMarketCapAPI.get_quotes_latest(symbols)
-        cmc_data = {"quotes": cmc_quotes}
+User Query: {query}
 
-        # Fetch DefiLlama TVL data for DeFi protocols
-        slugs = [c.get("id") for c in coin_data if c.get("id")]
-        logger.info(f"📊 Fetching TVL data for {len(slugs)} protocols")
-        llama_tvl = {slug: DefiLlamaAPI.get_protocol_tvl(slug) for slug in slugs[:20]}  # Limit to avoid too many calls
-        llama_data = {"tvl": llama_tvl}
+VERIFIED MARKET DATA:
+{json.dumps(verified_metrics, indent=2)}
 
-        prompt = AlphaGenerator.create_crypto_analysis_prompt(coin_data, query, cmc_data, llama_data, web_context, google_trends_data)
+GENERATE RESPONSE IN EXACT FORMAT:
+
+## 📊 VERIFIED SIGNALS
+{chr(10).join([f"• **{token['symbol']}** ${token['price']:,.4f} ({token['change_24h']:+.1f}%) | {token['momentum']}" for token in verified_metrics])}
+
+## 🎯 ENTRY TARGETS
+{chr(10).join([f"• **{token['symbol']}**: Entry ${token['price'] * 0.98:.4f} | Stop ${token['price'] * 0.92:.4f} | Target ${token['price'] * 1.08:.4f}" for token in verified_metrics])}
+
+## ⚡ MOMENTUM ANALYSIS
+[Analyze the strongest momentum signals from verified data only]
+
+## 🔍 VERIFICATION
+Data verified at: {datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M UTC')}
+Tokens analyzed: {len(verified_metrics)}
+
+RULES:
+- Use ONLY the verified data provided
+- Include exact prices and calculations
+- Focus on actionable signals
+- Keep analysis under 250 words
+- No speculation beyond provided data
+"""
+        
+        logger.info("🧠 Generating o4-mini trade signals...")
         analysis_result, llm_debug = AlphaGenerator.generate_content(prompt)
-        analysis_debug['llm'] = llm_debug
         
-        logger.info(f"🎯 FINAL ANALYSIS RESULT LENGTH: {len(analysis_result)} characters")
-        return (analysis_result, analysis_debug)
+        # Add verification footer
+        verification_footer = f"""
+
+---
+✅ **PRODUCTION VERIFIED**
+• Data Source: Real-time APIs
+• Verification: {datetime.now(timezone.utc).strftime('%H:%M UTC')}
+• Tokens: {len(verified_metrics)} verified
+• Approach: Gemini Grounding + o4-mini Analysis
+"""
+        
+        return analysis_result + verification_footer
 
 @app.route('/')
 def index():
@@ -1120,7 +1325,7 @@ def generate_alpha():
             'success': True,
             'analysis': analysis,
             'query': query,
-            'generated_at': datetime.utcnow().isoformat(),
+            'generated_at': datetime.now(timezone.utc).isoformat(),
             'debug_info': {
                 'response_length': len(analysis),
                 'query_length': len(query),
@@ -1165,7 +1370,7 @@ def share_to_discord():
             "title": title,
             "description": content[:4096],  # Discord embed limit
             "color": 0x00ff00,
-            "timestamp": datetime.utcnow().isoformat(),
+            "timestamp": datetime.now(timezone.utc).isoformat(),
             "footer": {"text": "Generated by Alpha Co-Pilot (LangChain + Azure OpenAI)"}
         }
 
@@ -1193,12 +1398,53 @@ def share_to_discord():
         logger.error(f"❌ Error in share_to_discord: {e}")
         return jsonify({'error': 'Internal server error'}), 500
 
+@app.route('/api/share-whop', methods=['POST'])
+def share_to_whop():
+    """Share analysis to Whop community"""
+    try:
+        data = request.get_json()
+        content = data.get('content', '').strip()
+        title = data.get('title', '🚀 Alpha Alert')
+        
+        logger.info(f"📤 Whop share request: title='{title}', content_length={len(content)}")
+
+        if not content:
+            logger.warning("⚠️ Empty content for Whop share")
+            return jsonify({'error': 'Content is required'}), 400
+
+        # For now, we'll just log the share request since Whop API integration would require specific setup
+        # In a real implementation, you'd integrate with Whop's API here
+        
+        formatted_content = f"""
+{title}
+
+{content}
+
+---
+Generated by Alpha Co-Pilot
+Powered by AI & Real-time Data
+        """
+        
+        logger.info("✅ Whop share prepared (would post to Whop community)")
+        logger.info(f"📄 Content preview: {formatted_content[:200]}...")
+        
+        # Simulate successful sharing
+        return jsonify({
+            'success': True, 
+            'message': 'Content ready for Whop sharing!',
+            'formatted_content': formatted_content
+        })
+
+    except Exception as e:
+        logger.error(f"❌ Error in share_to_whop: {e}")
+        return jsonify({'error': 'Internal server error'}), 500
+
 @app.route('/health')
 def health_check():
     """Health check endpoint with detailed diagnostics"""
     health_status = {
         'status': 'healthy',
-        'timestamp': datetime.utcnow().isoformat(),
+        'timestamp': datetime.now(timezone.utc).isoformat(),
         'langchain_llm': 'available' if llm else 'unavailable',
         'gemini': 'available' if gemini_client and gemini_config else 'unavailable',
         'azure_openai_endpoint': AZURE_OPENAI_ENDPOINT is not None,

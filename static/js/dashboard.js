@@ -5,23 +5,62 @@ const resultsSection = document.getElementById('resultsSection');
 const errorState = document.getElementById('errorState');
 const analysisContent = document.getElementById('analysisContent');
 const coinDataSection = document.getElementById('coinDataSection');
-const shareBtn = document.getElementById('shareBtn');
 const copyBtn = document.getElementById('copyBtn');
+
+// Social media share buttons
+const shareTwitterBtn = document.getElementById('shareTwitterBtn');
+const shareDiscordBtn = document.getElementById('shareDiscordBtn');
+const shareInstagramBtn = document.getElementById('shareInstagramBtn');
+const shareWhopBtn = document.getElementById('shareWhopBtn');
+
+// Pre-filled prompt templates
+const promptTemplates = document.querySelectorAll('.prompt-template');
+
+// Quick search cards
+const quickSearchCards = document.querySelectorAll('.quick-search-card');
 
 let currentAnalysis = '';
 
-// Sample queries for demo
+// Sample queries for demo - now focused and smart
 const sampleQueries = [
-    "Analyze trending AI coins on Solana",
-    "What are the top 3 DePIN tokens to watch?",
-    "Trending meme coins with high volume",
-    "Best Layer 2 tokens for this week"
+    "AAVE UNI COMP",
+    "Top 3 AI tokens",
+    "Trending DeFi", 
+    "BTC ETH SOL prices"
 ];
 
 // Add sample query on page load
 window.addEventListener('load', () => {
     const randomQuery = sampleQueries[Math.floor(Math.random() * sampleQueries.length)];
     queryInput.placeholder = randomQuery;
+});
+
+// Pre-filled prompt template functionality
+promptTemplates.forEach(template => {
+    template.addEventListener('click', () => {
+        const prompt = template.getAttribute('data-prompt');
+        queryInput.value = prompt;
+        queryInput.focus();
+        // Auto-generate for convenience
+        setTimeout(() => {
+            generateBtn.click();
+        }, 500);
+    });
+});
+
+// Quick search card functionality
+quickSearchCards.forEach(card => {
+    card.addEventListener('click', () => {
+        const searchQuery = card.getAttribute('data-search');
+        queryInput.value = searchQuery;
+        queryInput.focus();
+        // Scroll to input area
+        queryInput.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        // Auto-generate after a short delay
+        setTimeout(() => {
+            generateBtn.click();
+        }, 800);
+    });
 });
 
 generateBtn.addEventListener('click', async () => {
@@ -159,6 +198,53 @@ copyBtn.addEventListener('click', async () => {
         }
     }
 });
+
+// Social Media Share Functionality
+if (shareTwitterBtn) {
+    shareTwitterBtn.addEventListener('click', () => {
+        if (!currentAnalysis) return;
+        const tweetText = `🚀 Fresh Alpha Alert!\n\n${currentAnalysis.substring(0, 240)}...\n\n#CryptoAlpha #Trading`;
+        const twitterUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(tweetText)}`;
+        window.open(twitterUrl, '_blank');
+        showNotification('Opening Twitter to share your alpha!', 'success');
+    });
+}
+
+if (shareDiscordBtn) {
+    shareDiscordBtn.addEventListener('click', async () => {
+        if (!currentAnalysis) return;
+        try {
+            await navigator.clipboard.writeText(`🚀 **Alpha Alert**\n\`\`\`\n${currentAnalysis}\n\`\`\``);
+            showNotification('Copied for Discord! Paste in your channel.', 'success');
+        } catch (error) {
+            showNotification('Failed to copy for Discord', 'error');
+        }
+    });
+}
+
+if (shareInstagramBtn) {
+    shareInstagramBtn.addEventListener('click', async () => {
+        if (!currentAnalysis) return;
+        try {
+            await navigator.clipboard.writeText(currentAnalysis);
+            showNotification('Copied for Instagram Story! Paste as text.', 'success');
+        } catch (error) {
+            showNotification('Failed to copy for Instagram', 'error');
+        }
+    });
+}
+
+if (shareWhopBtn) {
+    shareWhopBtn.addEventListener('click', async () => {
+        if (!currentAnalysis) return;
+        try {
+            await navigator.clipboard.writeText(currentAnalysis);
+            showNotification('Copied for Whop! Share in your community.', 'success');
+        } catch (error) {
+            showNotification('Failed to copy for Whop', 'error');
+        }
+    });
+}
 
 // Enter key support
 queryInput.addEventListener('keypress', (e) => {
