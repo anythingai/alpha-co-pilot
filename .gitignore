@@ -11,3 +11,4 @@
 .env.development
 .env.test
 __pycache__
+node_modules

@@ -1,3 +1,50 @@
+// ============================================================================
+// POLYGON AMOY TESTNET WEB3 CONFIGURATION
+// ============================================================================
+const POLYGON_AMOY_CHAIN_ID = 80002;
+const CONTRACT_ADDRESS = '0x0FeDbdc549619dF0aad590438840bF4A696C7ACA'; // Deployed contract address
+const POLYGON_RPC_URL = 'https://rpc-amoy.polygon.technology';
+
+// Contract ABI for SignalRegistry
+const SIGNAL_REGISTRY_ABI = [
+    {
+        "inputs": [
+            {"internalType": "string", "name": "contentHash", "type": "string"},
+            {"internalType": "string", "name": "category", "type": "string"}
+        ],
+        "name": "registerSignal",
+        "outputs": [],
+        "stateMutability": "nonpayable",
+        "type": "function"
+    },
+    {
+        "anonymous": false,
+        "inputs": [
+            {"indexed": true, "internalType": "address", "name": "creator", "type": "address"},
+            {"indexed": true, "internalType": "string", "name": "contentHash", "type": "string"},
+            {"indexed": false, "internalType": "uint256", "name": "timestamp", "type": "uint256"},
+            {"indexed": false, "internalType": "string", "name": "category", "type": "string"}
+        ],
+        "name": "SignalRegistered",
+        "type": "event"
+    },
+    {
+        "inputs": [{"internalType": "address", "name": "creator", "type": "address"}],
+        "name": "getSignalCount",
+        "outputs": [{"internalType": "uint256", "name": "", "type": "uint256"}],
+        "stateMutability": "view",
+        "type": "function"
+    }
+];
+
+// ============================================================================
+// GLOBAL VARIABLES
+// ============================================================================
+let web3Provider = null;
+let userAccount = null;
+let currentAnalysis = '';
+
+// DOM elements
 const queryInput = document.getElementById('queryInput');
 const generateBtn = document.getElementById('generateBtn');
 const loadingState = document.getElementById('loadingState');
@@ -7,11 +54,18 @@ const analysisContent = document.getElementById('analysisContent');
 const coinDataSection = document.getElementById('coinDataSection');
 const copyBtn = document.getElementById('copyBtn');
 
-// Social media share buttons
-const shareTwitterBtn = document.getElementById('shareTwitterBtn');
-const shareDiscordBtn = document.getElementById('shareDiscordBtn');
-const shareInstagramBtn = document.getElementById('shareInstagramBtn');
-const shareWhopBtn = document.getElementById('shareWhopBtn');
+// Web3 elements
+const connectWalletBtn = document.getElementById('navConnectWalletBtn');
+const lockOnChainBtn = document.getElementById('lockOnChainBtn');
+const listMarketplaceBtn = document.getElementById('listMarketplaceBtn');
+const creaRewards = document.getElementById('creaRewards');
+
+// Wallet dropdown elements
+const walletDropdown = document.getElementById('walletDropdown');
+const walletAddressDisplay = document.getElementById('walletAddressDisplay');
+const copyAddressBtn = document.getElementById('copyAddressBtn');
+const viewOnExplorerBtn = document.getElementById('viewOnExplorerBtn');
+const disconnectWalletBtn = document.getElementById('disconnectWalletBtn');
 
 // Pre-filled prompt templates
 const promptTemplates = document.querySelectorAll('.prompt-template');
@@ -19,9 +73,589 @@ const promptTemplates = document.querySelectorAll('.prompt-template');
 // Quick search cards
 const quickSearchCards = document.querySelectorAll('.quick-search-card');
 
-let currentAnalysis = '';
+// ============================================================================
+// WEB3 FUNCTIONS
+// ============================================================================
 
-// Sample queries for demo - now focused and smart
+// Initialize Web3 on page load
+async function initWeb3() {
+    console.log('🚀 Initializing Web3 for Polygon Amoy...');
+    
+    if (typeof window.ethereum !== 'undefined') {
+        try {
+            web3Provider = window.ethereum;
+            
+            // Check if already connected
+            const accounts = await web3Provider.request({ method: 'eth_accounts' });
+            if (accounts.length > 0) {
+                userAccount = accounts[0];
+                await checkNetwork();
+                updateWalletUI();
+                console.log('✅ Wallet already connected:', userAccount);
+            }
+            
+            // Listen for account changes
+            web3Provider.on('accountsChanged', handleAccountsChanged);
+            web3Provider.on('chainChanged', handleChainChanged);
+            
+        } catch (error) {
+            console.error('❌ Failed to initialize Web3:', error);
+        }
+    } else {
+        console.log('⚠️ MetaMask not detected');
+    }
+}
+
+// Connect wallet
+async function connectWallet() {
+    if (!web3Provider) {
+        showNotification('Please install MetaMask to use Web3 features!', 'error');
+        return;
+    }
+    
+    try {
+        console.log('🔗 Connecting wallet...');
+        connectWalletBtn.disabled = true;
+        connectWalletBtn.innerHTML = `
+            <div class="loading-spinner w-4 h-4 mr-2"></div>
+            Connecting...
+        `;
+        
+        // Request account access
+        const accounts = await web3Provider.request({ 
+            method: 'eth_requestAccounts' 
+        });
+        
+        userAccount = accounts[0];
+        console.log('✅ Wallet connected:', userAccount);
+        
+        // Switch to Polygon Amoy if needed
+        await switchToPolygonAmoy();
+        
+        updateWalletUI();
+        showNotification('Wallet connected to Polygon testnet!', 'success');
+        
+    } catch (error) {
+        console.error('❌ Failed to connect wallet:', error);
+        showNotification('Failed to connect wallet: ' + error.message, 'error');
+    } finally {
+        connectWalletBtn.disabled = false;
+        updateConnectButtonText();
+    }
+}
+
+// Switch to Polygon Amoy testnet
+async function switchToPolygonAmoy() {
+    try {
+        await web3Provider.request({
+            method: 'wallet_switchEthereumChain',
+            params: [{ chainId: '0x13882' }], // 80002 in hex
+        });
+        console.log('✅ Switched to Polygon Amoy');
+    } catch (switchError) {
+        // Chain doesn't exist, add it
+        if (switchError.code === 4902) {
+            try {
+                console.log('➕ Adding Polygon Amoy network...');
+                await web3Provider.request({
+                    method: 'wallet_addEthereumChain',
+                    params: [
+                        {
+                            chainId: '0x13882',
+                            chainName: 'Polygon Amoy Testnet',
+                            nativeCurrency: {
+                                name: 'POL',
+                                symbol: 'POL',
+                                decimals: 18,
+                            },
+                            rpcUrls: [POLYGON_RPC_URL],
+                            blockExplorerUrls: ['https://amoy.polygonscan.com'],
+                        },
+                    ],
+                });
+                console.log('✅ Polygon Amoy network added');
+            } catch (addError) {
+                console.error('❌ Failed to add Polygon Amoy:', addError);
+                throw addError;
+            }
+        } else {
+            throw switchError;
+        }
+    }
+}
+
+// Check if we're on the correct network
+async function checkNetwork() {
+    try {
+        const chainId = await web3Provider.request({ method: 'eth_chainId' });
+        const currentChainId = parseInt(chainId, 16);
+        
+        if (currentChainId !== POLYGON_AMOY_CHAIN_ID) {
+            console.log('⚠️ Wrong network detected:', currentChainId);
+            showNotification('Please switch to Polygon Amoy testnet', 'error');
+            return false;
+        }
+        
+        return true;
+    } catch (error) {
+        console.error('❌ Failed to check network:', error);
+        return false;
+    }
+}
+
+// Lock analysis on-chain
+async function lockOnChain() {
+    if (!userAccount || !currentAnalysis) {
+        showNotification('Connect wallet and generate analysis first!', 'error');
+        return;
+    }
+    
+    if (CONTRACT_ADDRESS === '0x...') {
+        showNotification('Contract not deployed yet. Deploy the smart contract first!', 'error');
+        return;
+    }
+    
+    if (!(await checkNetwork())) {
+        await switchToPolygonAmoy();
+        return;
+    }
+    
+    try {
+        console.log('🔒 Starting on-chain lock process...');
+        lockOnChainBtn.disabled = true;
+        lockOnChainBtn.innerHTML = `
+            <div class="loading-spinner w-4 h-4 mr-2"></div>
+            Hashing Content...
+        `;
+        
+        // Create SHA256 hash of the analysis
+        const contentHash = CryptoJS.SHA256(currentAnalysis).toString();
+        console.log('📝 Content hash created:', contentHash);
+        
+        // Determine category from analysis content
+        const category = determineCategory(currentAnalysis);
+        console.log('🏷️ Category determined:', category);
+        
+        lockOnChainBtn.innerHTML = `
+            <div class="loading-spinner w-4 h-4 mr-2"></div>
+            Signing Transaction...
+        `;
+        
+        // Encode function call
+        const functionSignature = '0x1d4b2c11'; // registerSignal(string,string)
+        const encodedData = encodeFunctionCall(functionSignature, [contentHash, category]);
+        
+        // Prepare transaction
+        const transactionParameters = {
+            to: CONTRACT_ADDRESS,
+            from: userAccount,
+            data: encodedData,
+            gasLimit: '0x15f90', // 90000
+            gasPrice: '0x4a817c800', // 20 gwei
+        };
+        
+        // Send transaction
+        const txHash = await web3Provider.request({
+            method: 'eth_sendTransaction',
+            params: [transactionParameters],
+        });
+        
+        console.log('📤 Transaction sent:', txHash);
+        
+        lockOnChainBtn.innerHTML = `
+            <div class="loading-spinner w-4 h-4 mr-2"></div>
+            Confirming...
+        `;
+        
+        // Wait for confirmation
+        await waitForTransaction(txHash);
+        
+        // Success!
+        lockOnChainBtn.innerHTML = `
+            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+            </svg>
+            Locked On-Chain ✓
+        `;
+        lockOnChainBtn.classList.remove('from-green-500', 'to-green-600');
+        lockOnChainBtn.classList.add('from-green-600', 'to-green-700', 'bg-gradient-to-r');
+        
+        // Show transaction success
+        showTransactionSuccess(txHash, contentHash);
+        
+        // Animate $CREA rewards
+        animateCreaRewards();
+        
+        console.log('✅ On-chain lock completed successfully!');
+        
+    } catch (error) {
+        console.error('❌ Lock on-chain failed:', error);
+        showNotification('Transaction failed: ' + error.message, 'error');
+        resetLockButton();
+    } finally {
+        lockOnChainBtn.disabled = false;
+    }
+}
+
+// Simple function call encoding for demo purposes
+function encodeFunctionCall(signature, params) {
+    // This is a simplified encoding for demo purposes
+    // In production, use proper ABI encoding libraries
+    let encoded = signature;
+    
+    params.forEach(param => {
+        if (typeof param === 'string') {
+            // Convert string to hex and pad
+            const hex = Array.from(new TextEncoder().encode(param))
+                .map(b => b.toString(16).padStart(2, '0')).join('');
+            encoded += hex.padEnd(64, '0');
+        }
+    });
+    
+    return encoded;
+}
+
+// Determine category from analysis content
+function determineCategory(content) {
+    const contentLower = content.toLowerCase();
+    
+    if (contentLower.includes('defi') || contentLower.includes('aave') || contentLower.includes('uni')) {
+        return 'defi';
+    } else if (contentLower.includes('ai') || contentLower.includes('artificial intelligence')) {
+        return 'ai';
+    } else if (contentLower.includes('gaming') || contentLower.includes('nft')) {
+        return 'gaming';
+    } else if (contentLower.includes('layer') || contentLower.includes('l1') || contentLower.includes('l2')) {
+        return 'infrastructure';
+    } else {
+        return 'alpha';
+    }
+}
+
+// Wait for transaction confirmation
+async function waitForTransaction(txHash) {
+    return new Promise((resolve, reject) => {
+        const checkInterval = setInterval(async () => {
+            try {
+                const receipt = await web3Provider.request({
+                    method: 'eth_getTransactionReceipt',
+                    params: [txHash],
+                });
+                
+                if (receipt) {
+                    clearInterval(checkInterval);
+                    if (receipt.status === '0x1') {
+                        console.log('✅ Transaction confirmed:', receipt);
+                        resolve(receipt);
+                    } else {
+                        console.error('❌ Transaction failed:', receipt);
+                        reject(new Error('Transaction failed'));
+                    }
+                }
+            } catch (error) {
+                console.error('⚠️ Error checking transaction:', error);
+            }
+        }, 3000); // Check every 3 seconds
+        
+        // Timeout after 60 seconds
+        setTimeout(() => {
+            clearInterval(checkInterval);
+            resolve(null); // Don't reject, just resolve with null
+        }, 60000);
+    });
+}
+
+// Reset lock button to original state
+function resetLockButton() {
+    lockOnChainBtn.innerHTML = `
+        <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path>
+        </svg>
+        Lock-in On-Chain
+    `;
+    lockOnChainBtn.classList.remove('from-green-600', 'to-green-700');
+    lockOnChainBtn.classList.add('from-green-500', 'to-green-600');
+}
+
+// Show transaction success with link to PolygonScan
+function showTransactionSuccess(txHash, contentHash) {
+    const polygonScanUrl = `https://amoy.polygonscan.com/tx/${txHash}`;
+    
+    const notification = document.createElement('div');
+    notification.className = 'fixed top-4 right-4 z-50 max-w-md';
+    notification.innerHTML = `
+        <div class="bg-green-600 text-white p-4 rounded-lg shadow-lg">
+            <div class="flex items-center space-x-3 mb-3">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                </svg>
+                <div>
+                    <div class="font-semibold">Analysis Locked On-Chain!</div>
+                    <div class="text-sm opacity-90">Proof stored on Polygon Amoy</div>
+                </div>
+            </div>
+            <div class="text-xs bg-green-700 p-2 rounded mb-3 font-mono">
+                Hash: ${contentHash.substring(0, 32)}...
+            </div>
+            <div class="flex space-x-2">
+                <a href="${polygonScanUrl}" target="_blank" 
+                   class="inline-flex items-center text-sm bg-green-700 px-3 py-1 rounded hover:bg-green-800 transition-colors">
+                    View on PolygonScan
+                    <svg class="w-4 h-4 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path>
+                    </svg>
+                </a>
+                <button onclick="this.parentElement.parentElement.remove()" 
+                        class="text-sm bg-green-700 px-3 py-1 rounded hover:bg-green-800 transition-colors">
+                    Close
+                </button>
+            </div>
+        </div>
+    `;
+    
+    document.body.appendChild(notification);
+    
+    setTimeout(() => {
+        if (notification.parentElement) {
+            notification.remove();
+        }
+    }, 15000);
+}
+
+// Animate $CREA rewards
+function animateCreaRewards() {
+    const currentValue = parseFloat(creaRewards.textContent.replace(/[^0-9.]/g, ''));
+    const newValue = currentValue + 2.1;
+    
+    let step = 0;
+    const steps = 30;
+    const increment = 2.1 / steps;
+    
+    creaRewards.style.transition = 'all 0.1s ease';
+    
+    const animation = setInterval(() => {
+        step++;
+        const value = currentValue + (increment * step);
+        creaRewards.textContent = `${value.toFixed(1)} $CREA`;
+        creaRewards.style.transform = 'scale(1.1)';
+        
+        setTimeout(() => {
+            creaRewards.style.transform = 'scale(1)';
+        }, 50);
+        
+        if (step >= steps) {
+            clearInterval(animation);
+            creaRewards.textContent = `${newValue.toFixed(1)} $CREA`;
+            
+            // Flash effect
+            creaRewards.style.background = 'rgba(34, 197, 94, 0.2)';
+            creaRewards.style.borderRadius = '4px';
+            creaRewards.style.padding = '2px 4px';
+            
+            setTimeout(() => {
+                creaRewards.style.background = '';
+                creaRewards.style.borderRadius = '';
+                creaRewards.style.padding = '';
+            }, 1000);
+        }
+    }, 50);
+}
+
+// Update wallet UI when connected
+function updateWalletUI() {
+    if (userAccount) {
+        connectWalletBtn.innerHTML = `
+            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+            </svg>
+            <span class="hidden sm:inline">${userAccount.slice(0, 6)}...${userAccount.slice(-4)}</span>
+            <span class="sm:hidden">✓</span>
+            <svg class="w-3 h-3 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+            </svg>
+        `;
+        connectWalletBtn.classList.remove('from-blue-500', 'to-purple-500');
+        connectWalletBtn.classList.add('from-green-500', 'to-green-600');
+        connectWalletBtn.title = `Connected: ${userAccount}`;
+        
+        // Update dropdown address display
+        walletAddressDisplay.textContent = `${userAccount.slice(0, 6)}...${userAccount.slice(-4)}`;
+        
+        // Show lock on-chain button in results section
+        lockOnChainBtn.classList.remove('hidden');
+        if (currentAnalysis) {
+            lockOnChainBtn.disabled = false;
+        }
+        
+        // Change button behavior to toggle dropdown
+        connectWalletBtn.removeEventListener('click', connectWallet);
+        connectWalletBtn.addEventListener('click', toggleWalletDropdown);
+    }
+}
+
+function updateConnectButtonText() {
+    if (!userAccount) {
+        connectWalletBtn.innerHTML = `
+            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"></path>
+            </svg>
+            <span class="hidden sm:inline">Connect Wallet</span>
+            <span class="sm:hidden">Wallet</span>
+        `;
+        connectWalletBtn.classList.remove('from-green-500', 'to-green-600');
+        connectWalletBtn.classList.add('from-blue-500', 'to-purple-500');
+        connectWalletBtn.title = 'Connect your Web3 wallet';
+        
+        // Reset to connect functionality
+        connectWalletBtn.removeEventListener('click', toggleWalletDropdown);
+        connectWalletBtn.addEventListener('click', connectWallet);
+        
+        // Hide dropdown
+        walletDropdown.classList.add('hidden');
+    }
+}
+
+// ============================================================================
+// WALLET DROPDOWN FUNCTIONS
+// ============================================================================
+
+// Toggle wallet dropdown
+function toggleWalletDropdown(e) {
+    e.stopPropagation();
+    walletDropdown.classList.toggle('hidden');
+}
+
+// Disconnect wallet
+function disconnectWallet() {
+    console.log('🔌 Disconnecting wallet...');
+    userAccount = null;
+    lockOnChainBtn.classList.add('hidden');
+    lockOnChainBtn.disabled = true;
+    updateConnectButtonText();
+    showNotification('Wallet disconnected', 'info');
+}
+
+// Copy wallet address
+async function copyWalletAddress() {
+    if (!userAccount) return;
+    
+    try {
+        await navigator.clipboard.writeText(userAccount);
+        showNotification('Wallet address copied!', 'success');
+    } catch (error) {
+        showNotification('Failed to copy address', 'error');
+    }
+}
+
+// View wallet on explorer
+function viewWalletOnExplorer() {
+    if (!userAccount) return;
+    
+    const explorerUrl = `https://amoy.polygonscan.com/address/${userAccount}`;
+    window.open(explorerUrl, '_blank');
+    showNotification('Opening PolygonScan...', 'info');
+}
+
+// Close dropdown when clicking outside
+function handleClickOutside(e) {
+    if (!walletDropdown.contains(e.target) && !connectWalletBtn.contains(e.target)) {
+        walletDropdown.classList.add('hidden');
+    }
+}
+
+// Handle account changes
+function handleAccountsChanged(accounts) {
+    if (accounts.length === 0) {
+        console.log('🔌 Wallet disconnected');
+        userAccount = null;
+        lockOnChainBtn.classList.add('hidden');
+        lockOnChainBtn.disabled = true;
+        walletDropdown.classList.add('hidden');
+        updateConnectButtonText();
+        showNotification('Wallet disconnected', 'info');
+    } else {
+        userAccount = accounts[0];
+        console.log('🔄 Account changed to:', userAccount);
+        walletDropdown.classList.add('hidden'); // Close dropdown on account change
+        updateWalletUI();
+    }
+}
+
+// Handle chain changes
+function handleChainChanged(chainId) {
+    console.log('🔄 Chain changed to:', chainId);
+    const currentChainId = parseInt(chainId, 16);
+    
+    if (currentChainId !== POLYGON_AMOY_CHAIN_ID) {
+        showNotification('Please switch to Polygon Amoy testnet', 'error');
+        lockOnChainBtn.disabled = true;
+    } else {
+        showNotification('Connected to Polygon Amoy testnet', 'success');
+        if (currentAnalysis && userAccount) {
+            lockOnChainBtn.disabled = false;
+        }
+    }
+}
+
+// List on marketplace (mock implementation for demo)
+function listOnMarketplace() {
+    if (!currentAnalysis) {
+        showNotification('Generate analysis first!', 'error');
+        return;
+    }
+    
+    listMarketplaceBtn.disabled = true;
+    listMarketplaceBtn.innerHTML = `
+        <div class="loading-spinner w-4 h-4 mr-2"></div>
+        Listing...
+    `;
+    
+    // Simulate marketplace listing
+    setTimeout(() => {
+        listMarketplaceBtn.innerHTML = `
+            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+            </svg>
+            Listed! ✓
+        `;
+        listMarketplaceBtn.classList.remove('from-purple-500', 'to-pink-500');
+        listMarketplaceBtn.classList.add('from-green-500', 'to-green-600');
+        
+        showNotification('Analysis listed on marketplace! Public URL created.', 'success');
+        
+        // Reset after 3 seconds
+        setTimeout(() => {
+            listMarketplaceBtn.disabled = false;
+            listMarketplaceBtn.innerHTML = `
+                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"></path>
+                </svg>
+                List on Marketplace
+            `;
+            listMarketplaceBtn.classList.remove('from-green-500', 'to-green-600');
+            listMarketplaceBtn.classList.add('from-purple-500', 'to-pink-500');
+        }, 3000);
+    }, 2000);
+}
+
+// ============================================================================
+// EVENT LISTENERS
+// ============================================================================
+
+// Web3 event listeners
+connectWalletBtn?.addEventListener('click', connectWallet);
+lockOnChainBtn?.addEventListener('click', lockOnChain);
+listMarketplaceBtn?.addEventListener('click', listOnMarketplace);
+
+// Wallet dropdown event listeners
+disconnectWalletBtn?.addEventListener('click', disconnectWallet);
+copyAddressBtn?.addEventListener('click', copyWalletAddress);
+viewOnExplorerBtn?.addEventListener('click', viewWalletOnExplorer);
+
+// Close dropdown when clicking outside
+document.addEventListener('click', handleClickOutside);
+
+// Sample queries for demo
 const sampleQueries = [
     "AAVE UNI COMP",
     "Top 3 AI tokens",
@@ -29,11 +663,23 @@ const sampleQueries = [
     "BTC ETH SOL prices"
 ];
 
-// Add sample query on page load
+// Initialize on page load
 window.addEventListener('load', () => {
+    console.log('🚀 Initializing Sovereign Agent #001...');
+    
+    // Initialize Web3
+    initWeb3();
+    
+    // Set sample query
     const randomQuery = sampleQueries[Math.floor(Math.random() * sampleQueries.length)];
     queryInput.placeholder = randomQuery;
+    
+    console.log('✅ Sovereign Agent #001 ready!');
 });
+
+// ============================================================================
+// EXISTING FUNCTIONALITY (AI Generation, Copy, etc.)
+// ============================================================================
 
 // Pre-filled prompt template functionality
 promptTemplates.forEach(template => {
@@ -63,6 +709,7 @@ quickSearchCards.forEach(card => {
     });
 });
 
+// Generate alpha analysis
 generateBtn.addEventListener('click', async () => {
     const query = queryInput.value.trim();
     if (!query) {
@@ -85,9 +732,7 @@ generateBtn.addEventListener('click', async () => {
     try {
         const response = await fetch('/api/generate', {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
+            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ query })
         });
 
@@ -96,6 +741,11 @@ generateBtn.addEventListener('click', async () => {
         if (data.success) {
             showResults(data);
             showNotification('Analysis generated successfully!', 'success');
+            
+            // Enable lock on-chain if wallet connected
+            if (userAccount && CONTRACT_ADDRESS !== '0x...') {
+                lockOnChainBtn.disabled = false;
+            }
         } else {
             showError(data.error || 'Failed to generate alpha');
         }
@@ -109,69 +759,7 @@ generateBtn.addEventListener('click', async () => {
     }
 });
 
-shareBtn.addEventListener('click', async () => {
-    if (!currentAnalysis) return;
-
-    const originalHTML = shareBtn.innerHTML;
-    try {
-        shareBtn.disabled = true;
-        shareBtn.innerHTML = `
-            <div class="loading-spinner w-4 h-4 mr-2"></div>
-            Sharing...
-        `;
-        
-        const response = await fetch('/api/share', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({ 
-                content: currentAnalysis,
-                title: '🚀 Fresh Alpha Alert' 
-            })
-        });
-
-        const data = await response.json();
-        
-        if (data.success) {
-            shareBtn.innerHTML = `
-                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
-                </svg>
-                Shared!
-            `;
-            shareBtn.classList.add('bg-green-600');
-            shareBtn.classList.remove('bg-primary');
-            showNotification('Successfully shared to Discord!', 'success');
-        } else {
-            shareBtn.innerHTML = 'Share Failed';
-            shareBtn.classList.add('bg-red-600');
-            shareBtn.classList.remove('bg-primary');
-            showNotification('Failed to share to Discord', 'error');
-        }
-        
-        setTimeout(() => {
-            shareBtn.disabled = false;
-            shareBtn.innerHTML = originalHTML;
-            shareBtn.classList.remove('bg-green-600', 'bg-red-600');
-            shareBtn.classList.add('bg-primary');
-        }, 3000);
-    } catch (error) {
-        console.error('Share error:', error);
-        shareBtn.innerHTML = 'Share Failed';
-        shareBtn.classList.add('bg-red-600');
-        shareBtn.classList.remove('bg-primary');
-        showNotification('Network error while sharing', 'error');
-        
-        setTimeout(() => {
-            shareBtn.disabled = false;
-            shareBtn.innerHTML = originalHTML;
-            shareBtn.classList.remove('bg-red-600');
-            shareBtn.classList.add('bg-primary');
-        }, 3000);
-    }
-});
-
+// Copy functionality
 copyBtn.addEventListener('click', async () => {
     if (currentAnalysis) {
         try {
@@ -199,59 +787,16 @@ copyBtn.addEventListener('click', async () => {
     }
 });
 
-// Social Media Share Functionality
-if (shareTwitterBtn) {
-    shareTwitterBtn.addEventListener('click', () => {
-        if (!currentAnalysis) return;
-        const tweetText = `🚀 Fresh Alpha Alert!\n\n${currentAnalysis.substring(0, 240)}...\n\n#CryptoAlpha #Trading`;
-        const twitterUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(tweetText)}`;
-        window.open(twitterUrl, '_blank');
-        showNotification('Opening Twitter to share your alpha!', 'success');
-    });
-}
-
-if (shareDiscordBtn) {
-    shareDiscordBtn.addEventListener('click', async () => {
-        if (!currentAnalysis) return;
-        try {
-            await navigator.clipboard.writeText(`🚀 **Alpha Alert**\n\`\`\`\n${currentAnalysis}\n\`\`\``);
-            showNotification('Copied for Discord! Paste in your channel.', 'success');
-        } catch (error) {
-            showNotification('Failed to copy for Discord', 'error');
-        }
-    });
-}
-
-if (shareInstagramBtn) {
-    shareInstagramBtn.addEventListener('click', async () => {
-        if (!currentAnalysis) return;
-        try {
-            await navigator.clipboard.writeText(currentAnalysis);
-            showNotification('Copied for Instagram Story! Paste as text.', 'success');
-        } catch (error) {
-            showNotification('Failed to copy for Instagram', 'error');
-        }
-    });
-}
-
-if (shareWhopBtn) {
-    shareWhopBtn.addEventListener('click', async () => {
-        if (!currentAnalysis) return;
-        try {
-            await navigator.clipboard.writeText(currentAnalysis);
-            showNotification('Copied for Whop! Share in your community.', 'success');
-        } catch (error) {
-            showNotification('Failed to copy for Whop', 'error');
-        }
-    });
-}
-
 // Enter key support
 queryInput.addEventListener('keypress', (e) => {
     if (e.key === 'Enter') {
         generateBtn.click();
     }
 });
+
+// ============================================================================
+// UI STATE MANAGEMENT
+// ============================================================================
 
 function showLoading() {
     hideAllStates();

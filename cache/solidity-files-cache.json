@@ -1,0 +1,40 @@
+{
+  "_format": "hh-sol-cache-2",
+  "files": {
+    "D:\\Codespace\\alpha-co-pilot-c8f15cf5b28a357f2948b202e5dcb154c64ff735\\contracts\\SignalRegistry.sol": {
+      "lastModificationDate": 1756043606543,
+      "contentHash": "2985af28d27a2594788dcd65621e48f8",
+      "sourceName": "contracts/SignalRegistry.sol",
+      "solcConfig": {
+        "version": "0.8.19",
+        "settings": {
+          "optimizer": {
+            "enabled": true,
+            "runs": 200
+          },
+          "outputSelection": {
+            "*": {
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers",
+                "metadata"
+              ],
+              "": [
+                "ast"
+              ]
+            }
+          }
+        }
+      },
+      "imports": [],
+      "versionPragmas": [
+        "^0.8.19"
+      ],
+      "artifacts": [
+        "SignalRegistry"
+      ]
+    }
+  }
+}
