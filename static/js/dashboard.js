@@ -1069,7 +1069,7 @@ async function showAgenticWorkflow() {
             description: 'Planning Agent creating research strategy',
             color: 'text-blue-400',
             bgColor: 'border-blue-400',
-            duration: 2000
+            duration: 3500 // Longer for demo impact
         },
         {
             icon: 'fas fa-search',
@@ -1077,7 +1077,7 @@ async function showAgenticWorkflow() {
             description: 'Scout Agent gathering real-time data',
             color: 'text-yellow-400',
             bgColor: 'border-yellow-400',
-            duration: 2500
+            duration: 4000 // Longer for demo impact
         },
         {
             icon: 'fas fa-chart-line',
@@ -1085,7 +1085,7 @@ async function showAgenticWorkflow() {
             description: 'Analyst Agent synthesizing investment thesis',
             color: 'text-green-400',
             bgColor: 'border-green-400',
-            duration: 3000
+            duration: 4500 // Longer for demo impact
         },
         {
             icon: 'fas fa-shield-alt',
@@ -1093,7 +1093,7 @@ async function showAgenticWorkflow() {
             description: 'Risk Analyst Agent quality control & validation',
             color: 'text-red-400',
             bgColor: 'border-red-400',
-            duration: 2500
+            duration: 3500 // Longer for demo impact
         },
         {
             icon: 'fas fa-broadcast-tower',
@@ -1101,7 +1101,7 @@ async function showAgenticWorkflow() {
             description: 'Comms Agent formatting for publication',
             color: 'text-purple-400',
             bgColor: 'border-purple-400',
-            duration: 2000
+            duration: 3000 // Longer for demo impact
         },
         {
             icon: 'fas fa-check-circle',
@@ -1109,7 +1109,7 @@ async function showAgenticWorkflow() {
             description: 'Alpha Squad analysis ready',
             color: 'text-green-400',
             bgColor: 'border-green-400',
-            duration: 1000
+            duration: 500 // Shorter for faster completion
         }
     ];
 
@@ -1179,7 +1179,7 @@ async function showAgenticWorkflow() {
         </div>
     `;
     
-    await new Promise(resolve => setTimeout(resolve, 800));
+    await new Promise(resolve => setTimeout(resolve, 300)); // Much shorter delay
 }
 
 // Add required CSS animations
