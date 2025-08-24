@@ -2030,6 +2030,19 @@ def marketplace_index():
         logger.error(f"❌ Error loading marketplace: {e}")
         return render_template('marketplace.html', listings=[])
 
+@app.route('/marketplace/test')
+def marketplace_test():
+    """Test route to verify marketplace routing works"""
+    logger.info("🧪 Marketplace test route accessed")
+    return f"""
+    <h1>Marketplace Test Route</h1>
+    <p>✅ Marketplace routing is working!</p>
+    <p>Current working directory: {os.getcwd()}</p>
+    <p>Files in directory: {os.listdir('.')}</p>
+    <p>Marketplace file exists: {os.path.exists('marketplace_listings.json')}</p>
+    <a href="/marketplace">← Back to Marketplace</a>
+    """
+
 @app.route('/health')
 def health_check():
     """Health check endpoint with detailed diagnostics"""
