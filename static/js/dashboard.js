@@ -436,6 +436,12 @@ function animateCreaRewards() {
         creaRewards.textContent = `${value.toFixed(1)} $CREA`;
         creaRewards.style.transform = 'scale(1.1)';
         
+        // Also update navbar counter if it exists
+        const creaRewardsNav = document.getElementById('creaRewardsNav');
+        if (creaRewardsNav) {
+            creaRewardsNav.textContent = `${value.toFixed(1)} $CREA`;
+        }
+        
         setTimeout(() => {
             creaRewards.style.transform = 'scale(1)';
         }, 50);
@@ -443,6 +449,12 @@ function animateCreaRewards() {
         if (step >= steps) {
             clearInterval(animation);
             creaRewards.textContent = `${newValue.toFixed(1)} $CREA`;
+            
+            // Update navbar counter final value
+            const creaRewardsNav = document.getElementById('creaRewardsNav');
+            if (creaRewardsNav) {
+                creaRewardsNav.textContent = `${newValue.toFixed(1)} $CREA`;
+            }
             
             // Flash effect
             creaRewards.style.background = 'rgba(34, 197, 94, 0.2)';
@@ -477,6 +489,12 @@ function updateWalletUI() {
         
         // Update dropdown address display
         walletAddressDisplay.textContent = `${userAccount.slice(0, 6)}...${userAccount.slice(-4)}`;
+        
+        // Show $CREA rewards counter when wallet connected
+        const creaRewardsNavbar = document.getElementById('creaRewardsNavbar');
+        if (creaRewardsNavbar) {
+            creaRewardsNavbar.classList.remove('hidden');
+        }
         
         // Show lock on-chain button in results section
         lockOnChainBtn.classList.remove('hidden');
@@ -526,6 +544,13 @@ function toggleWalletDropdown(e) {
 function disconnectWallet() {
     console.log('🔌 Disconnecting wallet...');
     userAccount = null;
+    
+    // Hide $CREA rewards counter when wallet disconnected
+    const creaRewardsNavbar = document.getElementById('creaRewardsNavbar');
+    if (creaRewardsNavbar) {
+        creaRewardsNavbar.classList.add('hidden');
+    }
+    
     lockOnChainBtn.classList.add('hidden');
     lockOnChainBtn.disabled = true;
     updateConnectButtonText();

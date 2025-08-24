@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Alpha Marketplace | Alpha Co-Pilot</title>
+    <title>Sovereign Agent #001: Command Hub</title>
     
     <!-- Favicon -->
     <link rel="icon" type="image/x-icon" href="{{ url_for('static', filename='favicon.ico') }}">
@@ -95,18 +95,79 @@
                                 <div class="absolute -top-1 -right-1 w-3 h-3 bg-green-500 rounded-full border-2 border-background"></div>
                             </div>
                             <div>
-                                <h1 class="text-xl font-bold text-foreground tracking-tight">Alpha Marketplace</h1>
-                                <p class="text-xs text-muted-foreground font-medium">Discover Alpha Intelligence</p>
+                                <h1 class="text-xl font-bold text-foreground tracking-tight">Sovereign Agent #001</h1>
+                                <p class="text-xs text-muted-foreground font-medium">Command Hub</p>
                             </div>
                         </div>
                     </div>
 
                     <!-- Navigation -->
                     <div class="flex items-center space-x-4">
+                        <!-- Wallet Connection -->
+                        <div class="relative">
+                            <button 
+                                id="navConnectWalletBtn"
+                                class="inline-flex items-center justify-center px-4 py-2 bg-gradient-to-r from-blue-500 to-purple-500 text-white font-medium rounded-lg hover:from-blue-600 hover:to-purple-600 transition-all duration-200 text-sm"
+                            >
+                                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"></path>
+                                </svg>
+                                <span class="hidden sm:inline">Connect Wallet</span>
+                                <span class="sm:hidden">Wallet</span>
+                            </button>
+                            
+                            <!-- Wallet Dropdown (Hidden until connected) -->
+                            <div id="walletDropdown" class="hidden absolute right-0 top-full mt-2 w-64 bg-card border border-border rounded-lg shadow-lg z-50">
+                                <div class="p-4 border-b border-border">
+                                    <div class="flex items-center space-x-3">
+                                        <div class="w-8 h-8 bg-gradient-to-br from-green-500 to-green-600 rounded-full flex items-center justify-center">
+                                            <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                                            </svg>
+                                        </div>
+                                        <div>
+                                            <div class="text-sm font-medium text-foreground">Wallet Connected</div>
+                                            <div class="text-xs text-muted-foreground" id="walletAddressDisplay">0x1234...abcd</div>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="p-2">
+                                    <button id="copyAddressBtn" class="w-full flex items-center space-x-3 px-3 py-2 text-sm text-foreground hover:bg-muted rounded-lg transition-colors">
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"></path>
+                                        </svg>
+                                        <span>Copy Address</span>
+                                    </button>
+                                    
+                                    <button id="viewOnExplorerBtn" class="w-full flex items-center space-x-3 px-3 py-2 text-sm text-foreground hover:bg-muted rounded-lg transition-colors">
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path>
+                                        </svg>
+                                        <span>View on PolygonScan</span>
+                                    </button>
+                                    
+                                    <div class="flex items-center space-x-3 px-3 py-2 text-sm">
+                                        <div class="w-2 h-2 bg-green-500 rounded-full"></div>
+                                        <span class="text-muted-foreground">Polygon Amoy</span>
+                                    </div>
+                                    
+                                    <hr class="my-2 border-border">
+                                    
+                                    <button id="disconnectWalletBtn" class="w-full flex items-center space-x-3 px-3 py-2 text-sm text-red-500 hover:bg-red-500/10 rounded-lg transition-colors">
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path>
+                                        </svg>
+                                        <span>Disconnect</span>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
                         <a href="/" class="button-primary inline-flex items-center justify-center px-4 py-2 text-primary-foreground font-medium rounded-lg text-sm">
-                            <i class="fas fa-arrow-left mr-2"></i>
-                            <span class="hidden sm:inline">Back to Command Hub</span>
-                            <span class="sm:hidden">Dashboard</span>
+                            <i class="fas fa-chart-line mr-2"></i>
+                            <span class="hidden sm:inline">Alpha Co-Pilot</span>
+                            <span class="sm:hidden">Alpha</span>
                         </a>
                     </div>
                 </div>
@@ -117,97 +178,89 @@
         <main class="flex-1 max-w-7xl mx-auto px-6 py-8">
             <!-- Hero Section -->
             <div class="text-center mb-12">
-                <h2 class="text-4xl font-bold text-foreground mb-4">
+                <h2 class="text-5xl font-bold text-foreground mb-6">
                     <span class="bg-gradient-to-r from-primary to-purple-500 bg-clip-text text-transparent">
-                        AI-Generated Alpha Intelligence
+                        Sovereign Agent #001: Command Hub
                     </span>
                 </h2>
-                <p class="text-muted-foreground text-lg max-w-2xl mx-auto">
-                    Discover premium crypto analysis generated by our autonomous agent system. 
-                    Each listing represents verified on-chain intelligence.
-                </p>
-            </div>
-
-            <!-- Stats Cards -->
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
-                <div class="bg-card border border-border rounded-xl p-6 text-center card-hover">
-                    <div class="text-3xl font-bold text-foreground mb-2">{{ listings|length }}</div>
-                    <div class="text-muted-foreground">Total Analyses</div>
-                </div>
-                <div class="bg-card border border-border rounded-xl p-6 text-center card-hover">
-                    <div class="text-3xl font-bold text-green-500 mb-2">100%</div>
-                    <div class="text-muted-foreground">AI Generated</div>
-                </div>
-                <div class="bg-card border border-border rounded-xl p-6 text-center card-hover">
-                    <div class="text-3xl font-bold text-purple-500 mb-2">24/7</div>
-                    <div class="text-muted-foreground">Market Coverage</div>
-                </div>
-            </div>
-
-            <!-- Listings Grid -->
-            {% if listings %}
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {% for listing in listings %}
-                <div class="bg-card border border-border rounded-xl overflow-hidden card-hover">
-                    <div class="p-6">
-                        <!-- Header -->
-                        <div class="flex items-start justify-between mb-4">
-                            <div class="flex-1">
-                                <h3 class="text-lg font-bold text-foreground mb-2 line-clamp-2">
-                                    {{ listing.title }}
-                                </h3>
-                                <div class="flex items-center text-sm text-muted-foreground space-x-4">
-                                    <span>
-                                        <i class="fas fa-eye mr-1"></i>{{ listing.views }} views
-                                    </span>
-                                    <span>
-                                        <i class="fas fa-clock mr-1"></i>{{ listing.created_at[:10] }}
-                                    </span>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Content Preview -->
-                        <div class="text-muted-foreground text-sm mb-4 line-clamp-3">
-                            {{ listing.content[:150] }}{% if listing.content|length > 150 %}...{% endif %}
-                        </div>
-
-                        <!-- Tags -->
-                        <div class="flex flex-wrap gap-2 mb-4">
-                            {% for tag in listing.tags %}
-                            <span class="bg-muted text-muted-foreground px-2 py-1 rounded-full text-xs">
-                                {{ tag }}
-                            </span>
-                            {% endfor %}
-                        </div>
-
-                        <!-- Footer -->
-                        <div class="flex items-center justify-between">
-                            <div class="text-sm text-muted-foreground">
-                                <i class="fas fa-robot mr-1"></i>{{ listing.creator }}
-                            </div>
-                            <a href="/marketplace/{{ listing.id }}" 
-                               class="button-primary inline-flex items-center justify-center px-4 py-2 text-primary-foreground text-sm font-medium rounded-lg">
-                                View Analysis
-                            </a>
-                        </div>
+                
+                <!-- Mini Buttons -->
+                <div class="flex justify-center items-center space-x-6 mb-8">
+                    <!-- Add New Skill Button -->
+                    <button class="inline-flex items-center px-4 py-2 bg-muted/50 text-muted-foreground rounded-lg border border-border hover:bg-muted/70 transition-colors">
+                        <i class="fas fa-plus mr-2"></i>
+                        Add New Skill
+                    </button>
+                    
+                    <!-- CREA Rewards Counter -->
+                    <div class="inline-flex items-center px-4 py-2 bg-gradient-to-r from-green-500/20 to-blue-500/20 text-foreground rounded-lg border border-green-500/30">
+                        <i class="fas fa-coins mr-2 text-green-400"></i>
+                        <span id="creaRewards" class="font-bold">35.3 $CREA</span>
+                        <span class="text-sm text-muted-foreground ml-2">Rewards</span>
                     </div>
                 </div>
-                {% endfor %}
             </div>
-            {% else %}
-            <!-- Empty State -->
-            <div class="text-center py-16">
-                <div class="w-16 h-16 bg-muted rounded-full flex items-center justify-center mx-auto mb-6">
-                    <i class="fas fa-chart-line text-2xl text-muted-foreground"></i>
+
+            <!-- Skills Grid -->
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-6xl mx-auto">
+                
+                <!-- Email Reachout Agent -->
+                <div class="bg-card border border-border rounded-xl p-8 text-center card-hover">
+                    <div class="w-16 h-16 bg-gradient-to-br from-red-500 to-pink-500 rounded-full flex items-center justify-center mx-auto mb-6">
+                        <i class="fas fa-envelope text-2xl text-white"></i>
+                    </div>
+                    <h3 class="text-2xl font-bold text-foreground mb-4">Email Reachout Agent</h3>
+                    <p class="text-muted-foreground mb-6 leading-relaxed">
+                        Automate personalized email outreach campaigns with AI-powered messaging that converts prospects into clients.
+                    </p>
+                    <div class="flex items-center justify-center space-x-3 text-sm text-muted-foreground mb-6">
+                        <span class="bg-red-100 text-red-800 px-3 py-1 rounded-full">Coming Soon</span>
+                    </div>
+                    <button class="w-full bg-muted/50 text-muted-foreground font-medium py-3 rounded-lg cursor-not-allowed opacity-60">
+                        Skill Locked
+                    </button>
                 </div>
-                <h3 class="text-2xl font-bold text-foreground mb-4">No Alpha Available Yet</h3>
-                <p class="text-muted-foreground mb-8">Be the first to generate and list analysis on the marketplace!</p>
-                <a href="/" class="button-primary inline-flex items-center justify-center px-6 py-3 text-primary-foreground font-medium rounded-lg">
-                    <i class="fas fa-plus mr-2"></i>Generate Alpha
-                </a>
+
+                <!-- Community Manager -->
+                <div class="bg-card border border-border rounded-xl p-8 text-center card-hover">
+                    <div class="w-16 h-16 bg-gradient-to-br from-blue-500 to-cyan-500 rounded-full flex items-center justify-center mx-auto mb-6">
+                        <i class="fas fa-users text-2xl text-white"></i>
+                    </div>
+                    <h3 class="text-2xl font-bold text-foreground mb-4">Community Manager</h3>
+                    <p class="text-muted-foreground mb-6 leading-relaxed">
+                        Engage and grow your community across Discord, Telegram, and social platforms with intelligent moderation.
+                    </p>
+                    <div class="flex items-center justify-center space-x-3 text-sm text-muted-foreground mb-6">
+                        <span class="bg-blue-100 text-blue-800 px-3 py-1 rounded-full">Coming Soon</span>
+                    </div>
+                    <button class="w-full bg-muted/50 text-muted-foreground font-medium py-3 rounded-lg cursor-not-allowed opacity-60">
+                        Skill Locked
+                    </button>
+                </div>
+
+                <!-- Alpha Co-Pilot (Active) -->
+                <div class="bg-card border border-primary/50 rounded-xl p-8 text-center card-hover relative overflow-hidden">
+                    <!-- Active Indicator -->
+                    <div class="absolute top-4 right-4">
+                        <div class="w-3 h-3 bg-green-500 rounded-full animate-pulse"></div>
+                    </div>
+                    
+                    <div class="w-16 h-16 bg-gradient-to-br from-green-500 to-emerald-500 rounded-full flex items-center justify-center mx-auto mb-6">
+                        <i class="fas fa-chart-line text-2xl text-white"></i>
+                    </div>
+                    <h3 class="text-2xl font-bold text-foreground mb-4">Alpha Co-Pilot</h3>
+                    <p class="text-muted-foreground mb-6 leading-relaxed">
+                        Generate real-time crypto analysis with multi-agent AI system. Get alpha signals, risk assessment, and market insights.
+                    </p>
+                    <div class="flex items-center justify-center space-x-3 text-sm text-green-500 mb-6 font-medium">
+                        <div class="w-2 h-2 bg-green-500 rounded-full"></div>
+                        <span>Active Skill</span>
+                    </div>
+                    <a href="/" class="block w-full button-primary text-primary-foreground font-medium py-3 rounded-lg transition-all duration-200 hover:shadow-lg">
+                        Launch Alpha Co-Pilot
+                    </a>
+                </div>
             </div>
-            {% endif %}
         </main>
 
         <!-- Footer - Matching Dashboard Style -->
@@ -221,8 +274,8 @@
                                 <span class="font-bold text-sm">α</span>
                             </div>
                             <div>
-                                <h3 class="text-sm font-semibold text-foreground">Alpha Marketplace</h3>
-                                <p class="text-xs text-muted-foreground">AI Crypto Analysis</p>
+                                <h3 class="text-sm font-semibold text-foreground">Sovereign Agent #001</h3>
+                                <p class="text-xs text-muted-foreground">Command Hub</p>
                             </div>
                         </div>
                     </div>
@@ -257,5 +310,162 @@
             overflow: hidden;
         }
     </style>
+
+    <script>
+        // Animate CREA rewards counter
+        function animateCreaRewards() {
+            const creaElement = document.getElementById('creaRewards');
+            if (!creaElement) return;
+            
+            const currentValue = parseFloat(creaElement.textContent.replace(/[^0-9.]/g, ''));
+            const increment = 2.3;
+            const newValue = currentValue + increment;
+            
+            let step = 0;
+            const steps = 20;
+            const stepValue = increment / steps;
+            
+            const animation = setInterval(() => {
+                step++;
+                const currentDisplay = (currentValue + (stepValue * step)).toFixed(1);
+                creaElement.textContent = `${currentDisplay} $CREA`;
+                
+                if (step >= steps) {
+                    clearInterval(animation);
+                    creaElement.textContent = `${newValue.toFixed(1)} $CREA`;
+                }
+            }, 50);
+        }
+
+        // Simulate rewards earning every 30 seconds
+        setInterval(() => {
+            animateCreaRewards();
+        }, 30000);
+
+        // Initial animation after 5 seconds
+        setTimeout(() => {
+            animateCreaRewards();
+        }, 5000);
+
+        // Wallet functionality (simplified for marketplace page)
+        let userAccount = null;
+        const navConnectWalletBtn = document.getElementById('navConnectWalletBtn');
+        const walletDropdown = document.getElementById('walletDropdown');
+        const walletAddressDisplay = document.getElementById('walletAddressDisplay');
+        const copyAddressBtn = document.getElementById('copyAddressBtn');
+        const viewOnExplorerBtn = document.getElementById('viewOnExplorerBtn');
+        const disconnectWalletBtn = document.getElementById('disconnectWalletBtn');
+
+        // Initialize wallet connection
+        async function initWallet() {
+            if (typeof window.ethereum !== 'undefined') {
+                try {
+                    const accounts = await window.ethereum.request({ method: 'eth_accounts' });
+                    if (accounts.length > 0) {
+                        userAccount = accounts[0];
+                        updateWalletUI();
+                    }
+                } catch (error) {
+                    console.error('Error checking wallet connection:', error);
+                }
+            }
+        }
+
+        // Connect wallet
+        async function connectWallet() {
+            if (typeof window.ethereum !== 'undefined') {
+                try {
+                    const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
+                    userAccount = accounts[0];
+                    updateWalletUI();
+                } catch (error) {
+                    console.error('Error connecting wallet:', error);
+                }
+            } else {
+                alert('Please install MetaMask to connect your wallet');
+            }
+        }
+
+        // Update wallet UI
+        function updateWalletUI() {
+            if (userAccount) {
+                const shortAddress = `${userAccount.slice(0, 6)}...${userAccount.slice(-4)}`;
+                navConnectWalletBtn.innerHTML = `
+                    <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                    </svg>
+                    <span class="hidden sm:inline">${shortAddress}</span>
+                    <span class="sm:hidden">Connected</span>
+                    <svg class="w-4 h-4 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                    </svg>
+                `;
+                navConnectWalletBtn.classList.remove('from-blue-500', 'to-purple-500');
+                navConnectWalletBtn.classList.add('from-green-500', 'to-green-600');
+                navConnectWalletBtn.onclick = toggleWalletDropdown;
+                
+                walletAddressDisplay.textContent = shortAddress;
+            }
+        }
+
+        // Toggle wallet dropdown
+        function toggleWalletDropdown() {
+            walletDropdown.classList.toggle('hidden');
+        }
+
+        // Disconnect wallet
+        function disconnectWallet() {
+            userAccount = null;
+            navConnectWalletBtn.innerHTML = `
+                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"></path>
+                </svg>
+                <span class="hidden sm:inline">Connect Wallet</span>
+                <span class="sm:hidden">Wallet</span>
+            `;
+            navConnectWalletBtn.classList.remove('from-green-500', 'to-green-600');
+            navConnectWalletBtn.classList.add('from-blue-500', 'to-purple-500');
+            navConnectWalletBtn.onclick = connectWallet;
+            walletDropdown.classList.add('hidden');
+        }
+
+        // Copy wallet address
+        async function copyWalletAddress() {
+            if (userAccount) {
+                try {
+                    await navigator.clipboard.writeText(userAccount);
+                    copyAddressBtn.innerHTML = '<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg><span>Copied!</span>';
+                    setTimeout(() => {
+                        copyAddressBtn.innerHTML = '<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"></path></svg><span>Copy Address</span>';
+                    }, 2000);
+                } catch (error) {
+                    console.error('Failed to copy address:', error);
+                }
+            }
+        }
+
+        // View on explorer
+        function viewWalletOnExplorer() {
+            if (userAccount) {
+                window.open(`https://amoy.polygonscan.com/address/${userAccount}`, '_blank');
+            }
+        }
+
+        // Close dropdown when clicking outside
+        document.addEventListener('click', function(event) {
+            if (!event.target.closest('#navConnectWalletBtn') && !event.target.closest('#walletDropdown')) {
+                walletDropdown.classList.add('hidden');
+            }
+        });
+
+        // Event listeners
+        navConnectWalletBtn.addEventListener('click', connectWallet);
+        copyAddressBtn.addEventListener('click', copyWalletAddress);
+        viewOnExplorerBtn.addEventListener('click', viewWalletOnExplorer);
+        disconnectWalletBtn.addEventListener('click', disconnectWallet);
+
+        // Initialize on page load
+        initWallet();
+    </script>
 </body>
 </html>
