@@ -108,127 +108,28 @@ def _coerce_content_to_str(value: Any) -> str:
     except Exception:
         return ''
 
-def _extract_category_phrase(query: str) -> str:
-    """Extract the phrase immediately preceding the word 'category'.
-    Examples:
-      - "top 3 tokens on AI category on sol" -> "ai"
-      - "top 5 coins in DeFi category" -> "defi"
-    """
-    try:
-        ql = query.lower()
-        if 'category' not in ql:
-            return ''
-        pre = ql[: ql.rfind('category')].strip()
-        # Take the segment after the last connector (on|in|of|for)
-        m = re.search(r'(?:on|in|of|for)\s+([a-z0-9\-\s]{1,60})$', pre, re.IGNORECASE)
-        candidate = (m.group(1) if m else pre).strip()
-        # Normalize and remove noisy parts
-        candidate = re.sub(r'top\s+\d+\s*', ' ', candidate)
-        candidate = re.sub(r'\b(analysis|of|on|the|a|an|tokens?|coins?|most|best|chain)\b', ' ', candidate)
-        candidate = re.sub(r'\s+', ' ', candidate).strip()
-        # Remove trailing chain qualifiers
-        candidate = re.sub(r'(?:\s+on\s+(?:sol|solana|eth|ethereum|bsc|binance|arbitrum|base|polygon)(?:\s+chain)?)$', '', candidate)
-        # Keep at most last two tokens (e.g., "layer 2")
-        parts = candidate.split(' ')
-        if not parts or all(not p for p in parts):
-            return ''
-        return ' '.join([p for p in parts if p][-2:])
-    except Exception:
-        return ''
-
-def resolve_coingecko_category_slug(categories: List[Dict[str, Any]], cat_phrase: str) -> Optional[str]:
-    """Resolve a robust CoinGecko category slug from a free-text phrase.
-    Prioritizes exact, synonym-based, and word-boundary matches to avoid false positives like 'ai' matching 'chain'."""
-    if not cat_phrase:
-        return None
-    norm = cat_phrase.lower().strip()
-    synonyms = {
-        'ai': 'artificial-intelligence',
-        'artificial intelligence': 'artificial-intelligence',
-        'artificial-intelligence': 'artificial-intelligence',
-        'genai': 'artificial-intelligence',
-        'de fi': 'decentralized-finance-defi',
-        'defi': 'decentralized-finance-defi',
-        'gaming': 'gaming',
-        'meme': 'meme-token',
-        'memes': 'meme-token',
-        'layer 2': 'layer-2',
-        'l2': 'layer-2',
-    }
-    slug_guess = synonyms.get(norm)
-    # 1) Exact id match via synonym
-    if slug_guess:
-        match = next((c for c in categories if (c.get('category_id') or '').lower() == slug_guess), None)
-        if match:
-            return match.get('category_id')
-    # 2) Word-boundary name match
-    def name_tokens(name: str) -> List[str]:
-        return [t for t in re.split(r'[^a-z0-9]+', name.lower()) if t]
-    for c in categories:
-        tokens = set(name_tokens(c.get('name', '')))
-        if norm in tokens:
-            return c.get('category_id')
-    # 3) Artificial intelligence special-case if norm implies AI
-    if norm in {'ai', 'artificial intelligence', 'artificial-intelligence', 'genai'}:
-        for c in categories:
-            cid = (c.get('category_id') or '').lower()
-            if 'artificial' in cid:
-                return c.get('category_id')
-    # 4) As a last resort, safe substring match on category_id (not name)
-    for c in categories:
-        cid = (c.get('category_id') or '').lower()
-        if f'-{norm}-' in f'-{cid}-':
-            return c.get('category_id')
-    return None
+# Removed old filtering helper functions - now using generalized approach
 class QueryParser:
-    """Lightweight intent parser for flexible crypto queries."""
-
-    CHAIN_SYNONYMS: Dict[str, str] = {
-        'sol': 'solana', 'solana': 'solana', 'sol chain': 'solana',
-        'eth': 'ethereum', 'ethereum': 'ethereum',
-        'bsc': 'binance-smart-chain', 'bnb': 'binance-smart-chain',
-        'binance smart chain': 'binance-smart-chain', 'bnb chain': 'binance-smart-chain',
-        'polygon': 'polygon-pos', 'matic': 'polygon-pos',
-        'arbitrum': 'arbitrum-one',
-        'base': 'base',
-        'tron': 'tron',
-        'avalanche': 'avalanche', 'avax': 'avalanche',
-        'optimism': 'optimistic-ethereum', 'op': 'optimistic-ethereum',
-    }
+    """Generalized query parser for broad crypto analysis."""
 
     @staticmethod
     def parse(query: str) -> Dict[str, Any]:
+        """Parse query for general analysis without strict filtering"""
         ql = query.lower()
         result: Dict[str, Any] = {
-            'num': 3,
-            'category': None,
-            'chain': None,
-            'symbols': [],
-            'trending': any(k in ql for k in ['trending', 'hot', 'popular']),
-            'gainers': any(k in ql for k in ['gainers', 'top gainers']),
-            'losers': any(k in ql for k in ['losers', 'top losers']),
-            'overview': any(k in ql for k in ['market overview', 'market summary', 'global metrics', 'fear and greed']),
+            'num': 50,  # Increased default to get more comprehensive results
+            'query_text': query,  # Store original query for context
         }
 
-        # number
+        # Extract number if specified, but allow much higher limits
         m = re.search(r'\btop\s+(\d+)\b', ql)
         if m:
             try:
-                result['num'] = max(1, min(25, int(m.group(1))))
+                result['num'] = max(1, min(200, int(m.group(1))))  # Increased max limit
             except Exception:
                 pass
 
-        # category
-        if 'category' in ql:
-            result['category'] = _extract_category_phrase(query)
-
-        # chain hints
-        for hint, slug in QueryParser.CHAIN_SYNONYMS.items():
-            if re.search(rf'\b{re.escape(hint)}\b', ql):
-                result['chain'] = slug
-                break
-
-        # symbol list e.g., "analyze SOL, ETH" or "compare SOL vs ETH"
+        # Extract symbols for targeted analysis if specified
         sym_match = re.search(r'\b(?:analy[s|z]e|compare|vs|symbols?)\b\s*([a-z0-9\s,\-]+)', ql)
         if sym_match:
             raw = sym_match.group(1)
@@ -237,9 +138,6 @@ class QueryParser:
             if symbols:
                 result['symbols'] = symbols
 
-        # strict flags - check for chain specifications
-        result['strict_chain'] = bool(re.search(r'\bon\s+\w+', ql) or 'on chain' in ql or any(chain in ql for chain in ['solana', 'ethereum', 'polygon', 'bsc', 'avalanche']))
-        result['strict_category'] = 'category' in ql
         return result
 
 # Initialize LangChain AzureChatOpenAI with DEBUG ENHANCEMENTS
@@ -310,7 +208,7 @@ class CoinGeckoAPI:
     BASE_URL = "https://api.coingecko.com/api/v3"
 
     @staticmethod
-    def get_trending_coins(limit: int = 3) -> list:
+    def get_trending_coins(limit: int = 50) -> list:
         try:
             logger.info(f"🚀 Fetching {limit} trending coins from CoinGecko...")
             resp = requests.get(f"{CoinGeckoAPI.BASE_URL}/search/trending")
@@ -323,7 +221,7 @@ class CoinGeckoAPI:
             return []
 
     @staticmethod
-    def search_coins(query: str, limit: int = 3) -> list:
+    def search_coins(query: str, limit: int = 25) -> list:
         import time
         try:
             logger.info(f"🔍 Searching for coins with query: '{query}', limit: {limit}")
@@ -426,7 +324,7 @@ class CoinGeckoAPI:
             return []
 
     @staticmethod
-    def get_top_coins_by_category_slug(category_slug: str, limit: int = 3) -> list:
+    def get_top_coins_by_category_slug(category_slug: str, limit: int = 50) -> list:
         """Fetch top coins for a CoinGecko category slug using markets endpoint"""
         try:
             logger.info(f"🏷️ Fetching top {limit} coins for category slug: {category_slug}")
@@ -464,7 +362,7 @@ class CoinGeckoAPI:
             return []
 
     @staticmethod
-    def find_coins_by_category_and_chain(category_slug: str, chain_slug: str, target_count: int = 3, pages: int = 5, per_page: int = 50) -> list:
+    def find_coins_by_category_and_chain(category_slug: str, chain_slug: str, target_count: int = 50, pages: int = 10, per_page: int = 100) -> list:
         """Find coins in a CoinGecko category that are deployed on a specific chain.
         Fetches paginated markets data, then confirms chain via per-coin detail (platforms).
         """
@@ -539,7 +437,7 @@ class CoinGeckoAPI:
             return found
 
     @staticmethod
-    def get_trending_searches(limit: int = 3) -> list:
+    def get_trending_searches(limit: int = 50) -> list:
         """CoinGecko trending search list (lightweight)."""
         try:
             resp = requests.get(f"{CoinGeckoAPI.BASE_URL}/search/trending")
@@ -555,7 +453,7 @@ class CoinGeckoAPI:
             return []
 
     @staticmethod
-    def get_top_market_cap(limit: int = 3) -> list:
+    def get_top_market_cap(limit: int = 100) -> list:
         """Fetch top coins by market cap (simplified fields)."""
         try:
             params = {
@@ -587,7 +485,7 @@ class CoinMarketCapAPI:
     API_KEY = os.getenv('CMC_API_KEY')
 
     @staticmethod
-    def get_listings_latest(limit: int = 3, convert: str = 'USD') -> list:
+    def get_listings_latest(limit: int = 100, convert: str = 'USD') -> list:
         try:
             logger.info(f"📋 Fetching top {limit} listings from CoinMarketCap...")
             headers = {'Accepts': 'application/json', 'X-CMC_PRO_API_KEY': CoinMarketCapAPI.API_KEY}
@@ -627,7 +525,7 @@ class CoinMarketCapAPI:
             return {}
 
     @staticmethod
-    def get_listings_by_category(category_id: str, limit: int = 3, convert: str = 'USD') -> list:
+    def get_listings_by_category(category_id: str, limit: int = 100, convert: str = 'USD') -> list:
         """Fetch coins by CMC category"""
         try:
             logger.info(f"🏷️ Fetching {limit} coins from CMC category: {category_id}")
@@ -1047,25 +945,21 @@ IMPORTANT: You MUST provide a complete response. Do not leave the content empty.
 
     @staticmethod
     def generate_analysis(query: str) -> tuple[str, Dict[str, Any]]:
-        """Fetch coin data based on query and generate analysis. Returns (content, debug)."""
-        logger.info(f"🎯 Starting analysis generation for query: '{query}'")
+        """Fetch comprehensive crypto data and generate generalized analysis. Returns (content, debug)."""
+        logger.info(f"🎯 Starting generalized analysis generation for query: '{query}'")
         # Initialize Google Trends data
         google_trends_data: dict = {}
         analysis_debug: Dict[str, Any] = {}
         
-        # Parse intent from query
+        # Parse intent from query for basic parameters only
         intent = QueryParser.parse(query)
-        # Infer AI category if mentioned without the word 'category'
-        if not intent.get('category') and any(k in query.lower() for k in ['token', 'tokens', 'coin', 'coins']):
-            if re.search(r'\bai\b', query, re.IGNORECASE):
-                intent['category'] = 'ai'
         analysis_debug['intent'] = intent
-        logger.info(f"🎯 Parsed intent: {intent}")
+        logger.info(f"🎯 Parsed intent (generalized): {intent}")
 
         # Perform grounded search for additional context using Gemini
         try:
-            logger.info("🌐 Performing grounded search for additional context (Gemini)")
-            sources = AlphaGenerator.gemini_grounded_sources(query, max_results=5) if gemini_client else []
+            logger.info("🌐 Performing expanded grounded search for comprehensive context (Gemini)")
+            sources = AlphaGenerator.gemini_grounded_sources(query, max_results=20) if gemini_client else []  # Increased results
             web_context = sources
             # Fetch free-tier Google Trends data
             google_trends_data = GoogleTrendsAPI.get_interest_over_time(query)
@@ -1077,219 +971,108 @@ IMPORTANT: You MUST provide a complete response. Do not leave the content empty.
             google_trends_data = {}
         
         coin_data = []
-        analysis_debug['fallback_stage'] = 'primary'
+        analysis_debug['strategy'] = 'comprehensive_gathering'
+        num = intent.get('num', 50)  # Default to broader results
         
-        if intent.get('category') and any(k in query.lower() for k in ['token', 'tokens', 'coins']):
-            # Examples handled:
-            #  - top 3 tokens on AI category on sol chain
-            #  - top 5 coins in DeFi category
-            num = intent['num']
-            # Extract the category phrase before the word 'category'
-            cat_phrase = intent['category']
-
-            logger.info(f"🏷️ Processing category query. phrase='{cat_phrase}', limit: {num}")
-            categories = CoinGeckoAPI.get_categories_list()
-            slug = resolve_coingecko_category_slug(categories, cat_phrase)
-            if slug:
-                logger.info(f"🏷️ Matched CoinGecko category slug: '{slug}'")
-                analysis_debug['matched_category'] = {'slug': slug}
-                # If strict chain specified, do a chain-aware fetch; else top by category
-                chain_hint = intent.get('chain') if intent.get('strict_chain') else None
-                logger.info(f"🔗 Chain hint resolved: '{chain_hint}' (strict_chain: {intent.get('strict_chain')})")
-                if chain_hint:
-                    logger.info(f"🔗 Using chain-aware search: category='{slug}', chain='{chain_hint}', count={num}")
-                    coin_data = CoinGeckoAPI.find_coins_by_category_and_chain(slug, chain_hint, target_count=num)
-                    logger.info(f"🔗 Chain-aware search returned {len(coin_data)} coins")
-                if not coin_data:
-                    logger.info("🏷️ Chain-aware search found no results, trying Gemini suggestions")
-                    # Try Gemini grounded suggestions for specific chain+category combos
-                    if gemini_client and intent.get('strict_chain'):
-                        suggested = AlphaGenerator.gemini_suggest_tokens(query, intent.get('chain'), intent.get('category'), max_items=num*2)
-                        logger.info(f"🤖 Gemini suggested {len(suggested)} tokens: {suggested}")
-                        
-                        for i, token_name in enumerate(suggested):
-                            if i > 0:  # Add longer delay between searches to avoid rate limiting
-                                import time
-                                time.sleep(1)
-                            found_ids = CoinGeckoAPI.search_coins(token_name, limit=1)
-                            for coin_id in found_ids:
-                                data = CoinGeckoAPI.get_coin_data(coin_id)
-                                if data:
-                                    coin_data.append(data)
-                                    if len(coin_data) >= num:
-                                        break
-                            if len(coin_data) >= num:
-                                break
-                    
-                    if not coin_data:
-                        logger.info(f"🏷️ Falling back to regular category search for '{slug}'")
-                        coin_data = CoinGeckoAPI.get_top_coins_by_category_slug(slug, limit=num)
-                    
-        elif intent.get('trending'):
-            logger.info("📈 Processing trending coins query")
-            trending_simple = CoinGeckoAPI.get_trending_searches(limit=intent['num'])
-            ids = [c['id'] for c in trending_simple if c.get('id')]
-            for cid in ids:
-                data = CoinGeckoAPI.get_coin_data(cid)
-                if data:
-                    coin_data.append(data)
-            if not coin_data:
-                ids = CoinGeckoAPI.get_trending_coins(limit=intent['num'])
-                for cid in ids:
-                    data = CoinGeckoAPI.get_coin_data(cid)
+        logger.info(f"🎆 Starting comprehensive crypto data gathering (target: {num} coins)")
+        
+        # Strategy 1: If user provided explicit symbols, prioritize those
+        symbols = intent.get('symbols') or []
+        if symbols:
+            logger.info(f"🎯 Processing explicit symbols: {symbols}")
+            for sym in symbols:
+                found_ids = CoinGeckoAPI.search_coins(sym, limit=5)  # Get multiple matches per symbol
+                for coin_id in found_ids:
+                    data = CoinGeckoAPI.get_coin_data(coin_id)
                     if data:
                         coin_data.append(data)
-                    
-        else:
-            logger.info("🔍 Processing general search query")
-            # If user provided explicit symbols, try to fetch by symbols first
-            symbols = intent.get('symbols') or []
-            if symbols:
-                # Map symbols to CoinGecko IDs via search
-                ids: List[str] = []
-                for sym in symbols:
-                    found = CoinGeckoAPI.search_coins(sym, limit=1)
-                    ids.extend(found)
-            else:
-                # Try Gemini grounded suggestions first
-                suggested = AlphaGenerator.gemini_suggest_tokens(query, intent.get('chain'), intent.get('category')) if gemini_client else []
-                ids: List[str] = []
-                for name in suggested:
-                    ids.extend(CoinGeckoAPI.search_coins(name, limit=1))
-                if not ids:
-                    ids = CoinGeckoAPI.search_coins(query)
-            for cid in ids:
-                data = CoinGeckoAPI.get_coin_data(cid)
-                if data:
-                    coin_data.append(data)
-
-        # Final fallbacks to ensure we always have something to analyze (respect strict constraints)
-        if not coin_data:
-            logger.info("🧭 Fallback 1: CoinGecko trending searches")
-            analysis_debug['fallback_stage'] = 'fallback_trending'
-            trending_simple = CoinGeckoAPI.get_trending_searches(limit=intent['num'])
-            ids = [c['id'] for c in trending_simple if c.get('id')]
-            for cid in ids:
-                data = CoinGeckoAPI.get_coin_data(cid)
-                if not data:
-                    continue
-                # strict filters
-                if intent.get('strict_chain') and intent.get('chain'):
-                    if not any(intent['chain'] in (ch or '') for ch in data.get('chains', [])):
-                        continue
-                if intent.get('strict_category') and intent.get('category'):
-                    if not any('artificial' in (cat or '').lower() or 'ai' == (cat or '').lower() for cat in data.get('categories', [])) and intent['category'].lower() not in ' '.join(data.get('categories', [])).lower():
-                        continue
+        
+        # Strategy 2: Use Gemini for intelligent token suggestions based on query
+        if gemini_client:
+            logger.info(f"🤖 Getting Gemini suggestions for: '{query}'")
+            suggested = AlphaGenerator.gemini_suggest_tokens(query, None, None, max_items=min(30, num))  # No constraints
+            for i, token_name in enumerate(suggested):
+                if i > 0 and i % 10 == 0:  # Occasional delay to avoid rate limiting
+                    import time
+                    time.sleep(0.5)
+                found_ids = CoinGeckoAPI.search_coins(token_name, limit=2)
+                for coin_id in found_ids:
+                    data = CoinGeckoAPI.get_coin_data(coin_id)
+                    if data and not any(existing.get('id') == data.get('id') for existing in coin_data):
+                        coin_data.append(data)
+        
+        # Strategy 3: Direct search on the query itself
+        logger.info(f"🔍 Performing direct search on query: '{query}'")
+        direct_search_ids = CoinGeckoAPI.search_coins(query, limit=20)
+        for coin_id in direct_search_ids:
+            data = CoinGeckoAPI.get_coin_data(coin_id)
+            if data and not any(existing.get('id') == data.get('id') for existing in coin_data):
                 coin_data.append(data)
+        
+        # Strategy 4: Get trending coins to ensure we have popular tokens
+        logger.info("📈 Adding trending coins for market context")
+        trending_ids = CoinGeckoAPI.get_trending_coins(limit=min(20, num//2))
+        for coin_id in trending_ids:
+            data = CoinGeckoAPI.get_coin_data(coin_id)
+            if data and not any(existing.get('id') == data.get('id') for existing in coin_data):
+                coin_data.append(data)
+        
+        # Strategy 5: Get top market cap coins for market leaders
+        if len(coin_data) < num:
+            logger.info("📉 Adding top market cap coins for comprehensive coverage")
+            top_mc_coins = CoinGeckoAPI.get_top_market_cap(limit=min(50, num - len(coin_data)))
+            for coin in top_mc_coins:
+                if not any(existing.get('id') == coin.get('id') for existing in coin_data):
+                    coin_data.append(coin)
 
-        if not coin_data and not intent.get('strict_chain') and not intent.get('strict_category'):
-            logger.info("🧭 Fallback 2: Top market cap coins (non-strict)")
-            analysis_debug['fallback_stage'] = 'fallback_top_market_cap'
-            top_mc = CoinGeckoAPI.get_top_market_cap(limit=intent['num'])
-            if top_mc:
-                coin_data.extend(top_mc)
-
-        if not coin_data and not intent.get('strict_chain') and not intent.get('strict_category'):
-            logger.info("🧭 Fallback 3: BTC & ETH baseline (non-strict)")
-            analysis_debug['fallback_stage'] = 'fallback_btc_eth'
-            for sym in ["bitcoin", "ethereum"]:
-                data = CoinGeckoAPI.get_coin_data(sym)
+        # Final safety fallback to ensure we always have data to analyze
+        if not coin_data:
+            logger.info("🧭 Final safety fallback: BTC, ETH, and top market cap coins")
+            analysis_debug['fallback_used'] = True
+            # Get the major coins as baseline
+            for major_coin in ["bitcoin", "ethereum", "binancecoin", "solana", "cardano"]:
+                data = CoinGeckoAPI.get_coin_data(major_coin)
                 if data:
                     coin_data.append(data)
+            
+            # Add some top market cap coins
+            top_mc = CoinGeckoAPI.get_top_market_cap(limit=20)
+            for coin in top_mc:
+                if not any(existing.get('id') == coin.get('id') for existing in coin_data):
+                    coin_data.append(coin)
 
         if not coin_data:
-            logger.warning("⚠️ No relevant crypto data found after all fallbacks")
-            analysis_debug['fallback_stage'] = 'none_found'
-            return ("No relevant crypto data found for your query.", analysis_debug)
+            logger.warning("⚠️ Unable to gather any crypto data")
+            analysis_debug['error'] = 'no_data_available'
+            return ("Unable to gather cryptocurrency data at this time. Please try again later.", analysis_debug)
 
         logger.info(f"📊 Found {len(coin_data)} coins for analysis")
         logger.info(f"📊 Coin data size: {len(str(coin_data))} characters")
         
-        # Enrich entries with chain/category metadata if needed for strict filtering
-        chain_hint = intent.get('chain')
-        if chain_hint:
-            logger.info(f"🔗 Enriching {len(coin_data)} coins with chain data for filtering by '{chain_hint}'")
-            enriched_count = 0
-            for c in coin_data:
-                if not c.get('chains'):
-                    coin_id = c.get('id')
-                    if coin_id:
-                        detail = CoinGeckoAPI.get_coin_data(coin_id)
-                        if detail:
-                            if detail.get('chains') is not None:
-                                c['chains'] = detail.get('chains', [])
-                                enriched_count += 1
-                            if detail.get('categories') is not None:
-                                c['categories'] = detail.get('categories', [])
-            logger.info(f"🔗 Enriched {enriched_count} coins with chain metadata")
-
-        # Chain/category filtering
-        if chain_hint:
-            chain_hint_lower = chain_hint.lower()
-            # More flexible chain matching - check for common chain names
-            chain_aliases = {
-                'solana': ['solana', 'sol'],
-                'ethereum': ['ethereum', 'eth', 'erc-20'],
-                'binance': ['binance-smart-chain', 'bsc', 'bnb'],
-                'polygon': ['polygon-pos', 'polygon', 'matic'],
-                'avalanche': ['avalanche', 'avax'],
-                'cardano': ['cardano', 'ada']
-            }
-            
-            def matches_chain(coin_chains, target_chain):
-                target_lower = target_chain.lower()
-                aliases = chain_aliases.get(target_lower, [target_lower])
-                for chain in coin_chains:
-                    chain_str = str(chain or '').lower()
-                    if any(alias in chain_str for alias in aliases):
-                        return True
-                return False
-            
-            filtered = [c for c in coin_data if matches_chain(c.get('chains', []), chain_hint)]
-            logger.info(f"🔗 Chain filter '{chain_hint}': {len(filtered)}/{len(coin_data)} coins matched")
-            
-            if intent.get('strict_chain'):
-                if not filtered:
-                    # For Solana queries, be less strict since CoinGecko chain data may be incomplete
-                    if 'solana' in chain_hint.lower() and coin_data:
-                        logger.warning("⚠️ No exact Solana matches found, but proceeding with AI tokens that may be Solana-based")
-                        # Keep the tokens we found since they came from Gemini suggestions for "Solana AI"
-                    else:
-                        analysis_debug['strict_constraints_result'] = f"No coins matched your strict constraints (e.g., {chain_hint} + {intent.get('category', '')}). Try relaxing the chain/category or specify symbols (e.g., RNDR, JTO)."
-                        return (f"No coins matched your strict constraints (e.g., {chain_hint} + {intent.get('category', '')}). Try relaxing the chain/category or specify symbols (e.g., RNDR, JTO).", analysis_debug)
-                else:
-                    coin_data = filtered
-            elif filtered:
-                coin_data = filtered
-
-        category_hint = (intent.get('category') or '').lower()
-        if category_hint:
-            def is_ai_cat(cats: List[str]) -> bool:
-                text = ' '.join([str(x).lower() for x in cats or []])
-                return 'artificial-intelligence' in text or 'ai' in text
-            filtered_cat = [c for c in coin_data if is_ai_cat(c.get('categories', []))]
-            if intent.get('strict_category'):
-                coin_data = filtered_cat
-            elif filtered_cat:
-                coin_data = filtered_cat
+        # Trim to desired number if we have too many results
+        if len(coin_data) > num:
+            # Sort by market cap (if available) to prioritize larger coins
+            coin_data.sort(key=lambda x: x.get('market_cap_usd', 0) if x.get('market_cap_usd') else 0, reverse=True)
+            coin_data = coin_data[:num]
+        
+        logger.info(f"📅 Gathered {len(coin_data)} coins for comprehensive analysis")
+        logger.info(f"📅 Total data size: {len(str(coin_data))} characters")
+        
         analysis_debug['coin_data_count'] = len(coin_data)
         analysis_debug['web_context_count'] = len(web_context) if 'web_context' in locals() and isinstance(web_context, list) else 0
         analysis_debug['google_trends_points'] = len(google_trends_data)
 
-        # Fetch minimal CMC quotes, optionally filter by chain later (future enhancement)
+        # Fetch additional market data from multiple sources for comprehensive analysis
         symbols = [c.get("symbol") for c in coin_data if c.get("symbol")]
+        logger.info(f"💰 Fetching additional market data for {len(symbols)} symbols")
         cmc_quotes = CoinMarketCapAPI.get_quotes_latest(symbols)
         cmc_data = {"quotes": cmc_quotes}
 
-        # Fetch minimal DefiLlama TVL (use CoinGecko IDs as slugs)
+        # Fetch DefiLlama TVL data for DeFi protocols
         slugs = [c.get("id") for c in coin_data if c.get("id")]
-        llama_tvl = {slug: DefiLlamaAPI.get_protocol_tvl(slug) for slug in slugs}
+        logger.info(f"📊 Fetching TVL data for {len(slugs)} protocols")
+        llama_tvl = {slug: DefiLlamaAPI.get_protocol_tvl(slug) for slug in slugs[:20]}  # Limit to avoid too many calls
         llama_data = {"tvl": llama_tvl}
-
-        # If strict filters removed everything, return a clear notice with suggestions
-        if not coin_data and (intent.get('strict_chain') or intent.get('strict_category')):
-            message = "No coins matched your strict constraints (e.g., Solana + AI). Try relaxing the chain/category or specify symbols (e.g., RNDR, JTO)."
-            return (message, analysis_debug)
 
         prompt = AlphaGenerator.create_crypto_analysis_prompt(coin_data, query, cmc_data, llama_data, web_context, google_trends_data)
         analysis_result, llm_debug = AlphaGenerator.generate_content(prompt)
