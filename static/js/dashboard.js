@@ -3,7 +3,14 @@
 // ============================================================================
 const POLYGON_AMOY_CHAIN_ID = 80002;
 const CONTRACT_ADDRESS = '0x0FeDbdc549619dF0aad590438840bF4A696C7ACA'; // Deployed contract address
-const POLYGON_RPC_URL = 'https://rpc-amoy.polygon.technology';
+
+// Multiple RPC URLs for redundancy
+const POLYGON_RPC_URLS = [
+    'https://rpc-amoy.polygon.technology',
+    'https://polygon-amoy.drpc.org',
+    'https://polygon-amoy-bor.publicnode.com'
+];
+const POLYGON_RPC_URL = POLYGON_RPC_URLS[0]; // Primary RPC
 
 // Contract ABI for SignalRegistry
 const SIGNAL_REGISTRY_ABI = [
@@ -238,18 +245,47 @@ async function lockOnChain() {
             Signing Transaction...
         `;
         
-        // Encode function call
-        const functionSignature = '0x1d4b2c11'; // registerSignal(string,string)
-        const encodedData = encodeFunctionCall(functionSignature, [contentHash, category]);
+        // Create contract instance for proper encoding
+        const web3 = new Web3(web3Provider);
+        const contract = new web3.eth.Contract(SIGNAL_REGISTRY_ABI, CONTRACT_ADDRESS);
         
-        // Prepare transaction
+        // Encode function call properly
+        const encodedData = contract.methods.registerSignal(contentHash, category).encodeABI();
+        
+        // Estimate gas first
+        let gasEstimate;
+        try {
+            gasEstimate = await web3.eth.estimateGas({
+                from: userAccount,
+                to: CONTRACT_ADDRESS,
+                data: encodedData
+            });
+            console.log('⛽ Gas estimate:', gasEstimate);
+        } catch (gasError) {
+            console.error('❌ Gas estimation failed:', gasError);
+            gasEstimate = 100000; // Fallback
+        }
+        
+        // Get current gas price
+        let gasPrice;
+        try {
+            gasPrice = await web3.eth.getGasPrice();
+            console.log('💰 Current gas price:', gasPrice);
+        } catch (gasPriceError) {
+            console.error('❌ Gas price fetch failed:', gasPriceError);
+            gasPrice = web3.utils.toWei('30', 'gwei'); // Fallback
+        }
+        
+        // Prepare transaction with dynamic gas
         const transactionParameters = {
             to: CONTRACT_ADDRESS,
             from: userAccount,
             data: encodedData,
-            gasLimit: '0x15f90', // 90000
-            gasPrice: '0x4a817c800', // 20 gwei
+            gas: web3.utils.toHex(Math.floor(gasEstimate * 1.2)), // Add 20% buffer
+            gasPrice: web3.utils.toHex(gasPrice)
         };
+        
+        console.log('📋 Transaction params:', transactionParameters);
         
         // Send transaction
         const txHash = await web3Provider.request({
@@ -287,30 +323,29 @@ async function lockOnChain() {
         
     } catch (error) {
         console.error('❌ Lock on-chain failed:', error);
-        showNotification('Transaction failed: ' + error.message, 'error');
+        
+        // Better error handling for common issues
+        let errorMessage = 'Transaction failed: ';
+        if (error.code === -32603) {
+            errorMessage += 'Network error. Please check your connection and try again.';
+        } else if (error.code === 4001) {
+            errorMessage += 'Transaction cancelled by user.';
+        } else if (error.message.includes('insufficient funds')) {
+            errorMessage += 'Insufficient POL for gas fees. Get testnet POL from faucet.';
+        } else if (error.message.includes('gas')) {
+            errorMessage += 'Gas estimation failed. Try adjusting gas settings.';
+        } else {
+            errorMessage += error.message || 'Unknown error occurred.';
+        }
+        
+        showNotification(errorMessage, 'error');
         resetLockButton();
     } finally {
         lockOnChainBtn.disabled = false;
     }
 }
 
-// Simple function call encoding for demo purposes
-function encodeFunctionCall(signature, params) {
-    // This is a simplified encoding for demo purposes
-    // In production, use proper ABI encoding libraries
-    let encoded = signature;
-    
-    params.forEach(param => {
-        if (typeof param === 'string') {
-            // Convert string to hex and pad
-            const hex = Array.from(new TextEncoder().encode(param))
-                .map(b => b.toString(16).padStart(2, '0')).join('');
-            encoded += hex.padEnd(64, '0');
-        }
-    });
-    
-    return encoded;
-}
+// Function encoding now handled by Web3.js contract methods
 
 // Determine category from analysis content
 function determineCategory(content) {
